@@ -1,0 +1,3193 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Płońskpol — gra planszowa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Płońskpol — global styles */
+:root{
+  --accent:#FFC21F;
+  --red:#E63A2E;
+  --yellow:#FFC21F;
+  --ink:#1a1410;
+  --paper:#f5ecd9;
+  --paper-2:#ebe0c8;
+  --card:#ffffff;
+  --muted:#6d6558;
+  --rule:#c9bfa8;
+  --good:#2E8B4A;
+  --warn:#C6412A;
+  --font-display:"Space Grotesk", system-ui, sans-serif;
+  --font-body:"Space Grotesk", system-ui, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--ink);color:var(--paper);border-bottom:4px solid var(--yellow)}
+.hdr-logo{display:flex;align-items:center;gap:14px}
+.logo-mark{display:flex}
+.logo-circle{width:22px;height:22px;border-radius:50%;display:inline-block;border:2px solid #111}
+.logo-mark .logo-circle:nth-child(2){margin-left:-10px}
+.logo-main{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:.05em}
+.logo-sub{font-size:11px;color:#c9bfa8;letter-spacing:.12em;text-transform:uppercase}
+.btn-ghost{background:transparent;color:var(--paper);border:1px solid #555;padding:8px 14px;border-radius:4px}
+.hdr-timer{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:6px;background:#1a1a1a;border:2px solid var(--yellow);font-family:var(--font-mono);font-weight:700;font-size:18px;color:var(--yellow);letter-spacing:.06em;min-width:90px;justify-content:center}
+.hdr-timer.warn{border-color:#e67e22;color:#e67e22}
+.hdr-timer.danger{border-color:var(--red);color:var(--red);animation:timerPulse .7s infinite}
+@keyframes timerPulse{0%,100%{background:#1a1a1a}50%{background:#2a0a0a}}
+.hdr-timer-icon{font-size:14px}
+.hdr-room{display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:6px;background:#1a1a1a;border:2px solid #444;font-family:var(--font-mono);font-size:13px;color:#ccc;cursor:pointer;transition:border-color .15s}
+.hdr-room:hover{border-color:var(--yellow)}
+.hdr-room-code{font-weight:700;font-size:15px;color:var(--yellow);letter-spacing:.1em}
+.hdr-room-copied{color:var(--good);font-size:11px}
+.hdr-turn-badge{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.04em}
+.hdr-turn-badge.mine{background:var(--good);color:#fff}
+.hdr-turn-badge.wait{background:#333;color:#aaa}
+/* --- Lobby --- */
+.lobby{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--ink);padding:24px}
+.lobby-hero{text-align:center;margin-bottom:40px}
+.lobby-title{font-family:var(--font-display);font-weight:700;font-size:clamp(36px,8vw,72px);color:var(--yellow);letter-spacing:.06em;text-shadow:4px 4px 0 rgba(255,255,255,.08)}
+.lobby-sub{font-size:13px;color:#888;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.lobby-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:600px;width:100%}
+.lobby-card{flex:1;min-width:240px;max-width:280px;background:#1a1a1a;border:2px solid #333;border-radius:14px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;transition:border-color .15s}
+.lobby-card:hover{border-color:#555}
+.lobby-card-icon{font-size:40px;line-height:1}
+.lobby-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--paper)}
+.lobby-card-desc{font-size:12px;color:#888;line-height:1.5}
+.lobby-code-input{width:100%;padding:10px 14px;border-radius:8px;border:2px solid #444;background:#111;color:var(--paper);font-family:var(--font-mono);font-size:20px;font-weight:700;text-align:center;letter-spacing:.14em;text-transform:uppercase;outline:none;transition:border-color .15s}
+.lobby-code-input:focus{border-color:var(--yellow)}
+.lobby-code-input::placeholder{color:#555;font-size:14px;letter-spacing:.04em;font-weight:400}
+.lobby-error{color:var(--red);font-size:12px;font-weight:700;min-height:18px}
+.lobby-btn{width:100%;padding:11px 0;border-radius:8px;border:none;font-family:var(--font-display);font-weight:700;font-size:15px;cursor:pointer;transition:opacity .15s}
+.lobby-btn-primary{background:var(--yellow);color:var(--ink)}
+.lobby-btn-secondary{background:#2a2a2a;color:var(--paper);border:2px solid #444}
+.lobby-btn:disabled{opacity:.4;cursor:not-allowed}
+/* waiting overlay in turn panel */
+.mp-wait{text-align:center;padding:20px 10px;border-radius:8px;background:#f5f0e8;border:2px dashed var(--rule);margin:8px 0}
+.mp-wait-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.mp-wait-player{font-size:20px;font-weight:700;margin-top:4px}
+.btn-ghost:hover{background:#222}
+.main{display:grid;grid-template-columns: 240px minmax(480px,1fr) 280px;gap:16px;padding:16px;align-items:start}
+@media (max-width: 1200px){.main{grid-template-columns: 210px 1fr 240px;gap:12px;padding:12px}}
+@media (max-width: 980px){.main{grid-template-columns: 1fr;}.right-panel{position:static}.board-wrap{order:-1}}
+.board-wrap{display:flex;justify-content:center}
+.board{
+  --size: min(82vh, 100%, 920px);
+  width:var(--size);height:var(--size);
+  aspect-ratio:1/1;
+  display:grid;
+  grid-template-columns: 14% repeat(9, 1fr) 14%;
+  grid-template-rows: 14% repeat(9, 1fr) 14%;
+  background:var(--paper-2);
+  border:3px solid var(--ink);
+  box-shadow: 0 12px 40px rgba(0,0,0,.22), inset 0 0 0 8px var(--paper-2), inset 0 0 0 10px var(--ink);
+  padding:0;
+  position:relative;
+}
+.cell{position:relative}
+.tile{width:100%;height:100%;background:#fefbf3;border:1px solid var(--ink);display:flex;flex-direction:column;font-size:10px;position:relative;overflow:hidden;cursor:pointer;transition:transform .1s}
+.tile:hover{transform:scale(1.02);z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.tile-corner{font-size:11px;background:var(--paper-2)}
+.tile-color-bar{height:22%;border-bottom:1px solid var(--ink)}
+.tile-body{padding:4px 5px;flex:1;display:flex;flex-direction:column;justify-content:space-between;text-align:center}
+.tile-name{font-weight:700;font-size:9.5px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em}
+.tile-corner .tile-name{font-size:12px;font-family:var(--font-display);font-weight:700}
+.tile-price{font-size:9px;color:var(--muted);margin-top:2px}
+.tile-icon{font-size:22px;margin:4px 0}
+.tile-corner .tile-icon{font-size:32px}
+.tile-sub{font-size:7.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.tile-bottom .tile-color-bar{order:-1}
+.tile-top{transform:rotate(180deg)}
+.tile-top .tile-body, .tile-top .pawns, .tile-top .owner-flag, .tile-top .houses-row, .tile-top .mortgaged-overlay{transform:rotate(180deg)}
+.tile-left .tile-color-bar{position:absolute;right:0;top:0;bottom:0;width:22%;height:auto;border-bottom:none;border-left:1px solid var(--ink)}
+.tile-left .tile-body{padding-right:calc(22% + 4px)}
+.tile-right .tile-color-bar{position:absolute;left:0;top:0;bottom:0;width:22%;height:auto;border-bottom:none;border-right:1px solid var(--ink)}
+.tile-right .tile-body{padding-left:calc(22% + 4px)}
+.owner-flag{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:1.5px solid #111;display:flex;align-items:center;justify-content:center;font-size:10px;background:#fff;color:#fff}
+.mortgaged-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.8);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--warn);transform:rotate(-18deg);pointer-events:none}
+.houses-row{position:absolute;top:2px;left:2px;right:20px;display:flex;gap:2px;flex-wrap:wrap;z-index:2}
+.house,.hotel{font-size:11px}
+.pawns{position:absolute;inset:0;display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-items:center;z-index:3}
+.pawn{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+@keyframes pawnPop{0%{transform:scale(0.4);opacity:.5}65%{transform:scale(1.35)}100%{transform:scale(1);opacity:1}}
+.pawn-moving{animation:pawnPop 0.18s ease-out;}
+.board-center{grid-column: 2 / 11;grid-row: 2 / 11;display:flex;align-items:center;justify-content:center;background: repeating-linear-gradient(45deg, var(--paper) 0 20px, var(--paper-2) 20px 40px);border:1px solid var(--ink);position:relative}
+.center-logo{text-align:center;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;width:90%}
+.cl-top{font-family:var(--font-display);font-weight:700;font-size:clamp(28px,4.5vw,64px);letter-spacing:.04em;color:var(--red);transform:rotate(-4deg);text-shadow:3px 3px 0 var(--yellow)}
+.cl-chopin{margin:6px 0}
+.chopin-placeholder{width:130px;height:130px;border:2px dashed var(--muted);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.5)}
+.cp-note{font-size:46px;line-height:1;color:var(--muted)}
+.cp-txt{font-family:var(--font-mono);font-size:9px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.cl-dice{display:flex;gap:16px}
+.die{width:52px;height:52px;background:#fff;border:2px solid var(--ink);border-radius:8px;display:grid;grid-template-areas:"tl . tr" "ml c mr" "bl . br";padding:8px;box-shadow:0 3px 0 var(--ink)}
+.dot{width:8px;height:8px;background:var(--ink);border-radius:50%;align-self:center;justify-self:center}
+.cl-turn{font-size:14px;background:#fff;padding:6px 14px;border:1px solid var(--ink);border-radius:4px}
+.cl-deck-labels{display:flex;gap:14px;margin-top:6px}
+.deck-label{padding:10px 16px;border:1px solid var(--ink);background:#fff;font-family:var(--font-display);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;transform:rotate(-3deg);box-shadow:2px 2px 0 var(--ink)}
+.deck-label.chance{background:var(--yellow);transform:rotate(3deg)}
+.deck-label.chest{background:#fff}
+.left-panel{display:flex;flex-direction:column;gap:10px}
+.player-card{background:var(--card);border:1px solid var(--rule);border-left:6px solid var(--pc,#ccc);border-radius:6px;padding:10px 12px;position:relative}
+.player-card.active{box-shadow:0 0 0 3px var(--pc,var(--yellow)),0 6px 16px rgba(0,0,0,.1)}
+.player-card.bankrupt{opacity:.4}
+.pc-head{display:flex;align-items:center;gap:10px}
+.pc-token{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid var(--ink)}
+.pc-name-wrap{flex:1;min-width:0}
+.pc-name{font-weight:700;font-family:var(--font-display);font-size:15px}
+.pc-role{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pc-money{font-family:var(--font-display);font-weight:700;font-size:17px}
+.pc-money span{font-size:10px;color:var(--muted);font-weight:400}
+.pc-jail{margin-top:6px;font-size:11px;color:var(--warn);font-weight:600}
+.pc-card-out{margin-top:4px;font-size:11px;color:var(--good)}
+.pc-holdings{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.pc-group{display:flex;align-items:center;gap:2px;background:var(--paper);border:1px solid var(--rule);padding:2px 4px;font-size:10px;border-radius:3px}
+.pc-group-bar{width:8px;height:14px;display:inline-block;border:1px solid var(--ink)}
+.pc-empty{font-size:11px;color:var(--muted);font-style:italic}
+.right-panel{display:flex;flex-direction:column;gap:12px;position:sticky;top:20px}
+.turn-panel{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:14px;box-shadow:4px 4px 0 var(--ink)}
+.tp-head{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)}
+.tp-player{display:flex;align-items:center;gap:8px;margin-top:4px}
+.tp-token{font-size:24px}
+.tp-name{font-family:var(--font-display);font-weight:700;font-size:20px}
+.tp-pos{font-size:13px;color:var(--muted);margin:6px 0 12px}
+.btn{background:#fff;border:2px solid var(--ink);padding:8px 14px;font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.02em;border-radius:4px;box-shadow:2px 2px 0 var(--ink);transition:all .05s}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--yellow)}
+.btn-big{display:block;width:100%;padding:14px;font-size:15px;margin-top:8px}
+.btn-close{margin-top:10px;background:#f0f0f0}
+.tp-jail-opts{display:flex;flex-direction:column;gap:6px}
+.tp-jail-info{font-size:12px;color:var(--warn);font-weight:600;text-align:center;padding:6px;background:#fff3f0;border-radius:3px}
+.buy-prompt{text-align:center}
+.bp-tile{padding:10px;border:1px solid var(--rule);border-top:8px solid;margin-bottom:8px;background:var(--paper)}
+.bp-name{font-weight:700;font-family:var(--font-display)}
+.bp-price{font-size:22px;font-family:var(--font-display);margin-top:4px}
+.bp-q{font-size:13px;margin-bottom:8px}
+.bp-actions{display:flex;gap:8px}
+.bp-actions .btn{flex:1}
+.bp-warn{font-size:11px;color:var(--warn);margin-top:6px}
+.card-prompt{text-align:center;padding:10px;border-radius:6px}
+.card-prompt.chance{background:var(--yellow)}
+.card-prompt.chest{background:#e8f4e8}
+.cp-deck{font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:.1em;margin-bottom:10px}
+.cp-text{font-size:13px;line-height:1.4;margin-bottom:12px;min-height:48px}
+.event-log{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:10px;max-height:340px;overflow:hidden;display:flex;flex-direction:column}
+.el-head{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.el-list{overflow-y:auto;flex:1;padding:6px 0;display:flex;flex-direction:column;gap:4px}
+.el-row{font-size:11.5px;line-height:1.35;padding:4px 6px;border-left:2px solid var(--rule);background:var(--paper)}
+.el-row.good{border-left-color:var(--good)}
+.el-row.warn{border-left-color:var(--warn);background:#fff3f0}
+.el-row.event{border-left-color:var(--yellow);background:#fffacc;font-weight:600}
+.event-banner{background:#fffacc;border:2px solid var(--yellow);border-radius:6px;padding:10px 12px;box-shadow:3px 3px 0 #c8960c}
+.eb-label{font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:#a07800;margin-bottom:4px;font-weight:700}
+.eb-text{font-size:12px;font-weight:600;color:#1a1410;line-height:1.4}
+.eb-turns{font-size:10px;color:#6d6558;margin-top:4px}
+/* Popup zdarzenia */
+.event-popup-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:200;pointer-events:none}
+@keyframes epopIn{from{opacity:0;transform:scale(0.5) translateY(30px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes epopOut{from{opacity:1;transform:scale(1) translate(0,0)}to{opacity:0;transform:scale(0.25) translate(420px,-320px)}}
+.event-popup{background:#fffacc;border:4px solid var(--yellow);border-radius:16px;padding:28px 36px;max-width:460px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45),8px 8px 0 #c8960c;animation:epopIn .35s cubic-bezier(.175,.885,.32,1.275)}
+.event-popup.hiding{animation:epopOut .55s ease-in forwards}
+.epop-label{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#a07800;margin-bottom:10px}
+.epop-icon{font-size:48px;margin-bottom:10px;line-height:1}
+.epop-text{font-family:var(--font-display);font-size:18px;font-weight:700;color:#1a1410;line-height:1.4}
+.gg{text-align:center;font-size:20px;margin:16px 0;font-family:var(--font-display)}
+.card-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;animation:fade .15s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.prop-card{background:#fff;border:3px solid var(--ink);border-radius:6px;width:320px;max-width:90vw;box-shadow:8px 8px 0 var(--ink)}
+.prop-bar{padding:14px 16px;text-align:center;color:#fff}
+.prop-group-label{font-size:10px;letter-spacing:.2em;opacity:.9}
+.prop-title{font-family:var(--font-display);font-weight:700;font-size:18px;text-transform:uppercase;margin-top:4px}
+.prop-sub-plain{font-size:11px;margin-top:4px;opacity:.8}
+.rent-table{padding:12px 18px;font-size:13px}
+.rent-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--rule)}
+.rent-row.hotel{background:var(--paper);padding:6px;margin:4px -8px 0;border-radius:3px;border-bottom:none}
+.rent-sep{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:6px 0 2px;text-align:center}
+.rent-foot{margin-top:10px;font-size:11.5px;color:var(--muted);padding-top:8px;border-top:2px solid var(--ink)}
+.prop-owner{padding:10px 18px;font-size:12px;border-top:1px solid var(--rule)}
+.prop-actions{padding:0 18px 10px;display:flex;flex-direction:column;gap:6px}
+.setup{min-height:100vh;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:20px;gap:40px;flex-wrap:wrap}
+.setup-hero{text-align:center;flex:1;min-width:300px;max-width:520px}
+.setup-title{font-family:var(--font-display);font-weight:700;font-size:clamp(48px,7vw,88px);letter-spacing:.02em;color:var(--red);transform:rotate(-3deg);text-shadow:6px 6px 0 var(--yellow),6px 6px 0 1px var(--ink)}
+.setup-tag{font-size:14px;color:var(--muted);margin-top:12px;letter-spacing:.05em}
+.setup-stripes{display:flex;gap:4px;margin-top:22px;justify-content:center}
+.setup-stripes>div{width:36px;height:12px;border:1px solid var(--ink)}
+.setup-card{background:#fff;border:3px solid var(--ink);border-radius:8px;padding:24px;width:420px;max-width:100%;box-shadow:8px 8px 0 var(--ink)}
+.setup-card h2{margin:0 0 14px;font-family:var(--font-display);font-size:22px}
+.setup-card label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.count-pick,.money-pick{display:flex;gap:6px;flex-wrap:wrap}
+.cp{padding:8px 14px;border:2px solid var(--ink);background:#fff;font-weight:600;border-radius:4px;font-family:var(--font-display)}
+.cp.on{background:var(--yellow)}
+.name-list{display:flex;flex-direction:column;gap:6px}
+.name-row{display:flex;align-items:center;gap:8px}
+.name-token{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--ink);color:#fff}
+.name-row input{flex:1;padding:7px 10px;border:1.5px solid var(--rule);border-radius:4px;font-size:13px}
+.name-desc{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-width:110px}
+.tweaks-panel{position:fixed;bottom:20px;right:20px;width:280px;background:#fff;border:2px solid var(--ink);border-radius:6px;padding:14px;box-shadow:6px 6px 0 var(--ink);z-index:40}
+.tp-title{font-family:var(--font-display);font-weight:700;font-size:14px;margin-bottom:10px}
+.tp-row{margin:8px 0}
+.tp-row.small{font-size:11px;color:var(--muted)}
+.el-list::-webkit-scrollbar{width:6px}
+.el-list::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+/* ---------- Blackjack ---------- */
+.bj-prompt{text-align:center}
+.bj-title{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.06em;margin-bottom:8px}
+.bj-table{background:#1a5c2a;border:3px solid var(--ink);border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:inset 0 3px 8px rgba(0,0,0,.4)}
+.bj-section{margin-bottom:8px}
+.bj-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#a8d8b0;margin-bottom:6px;font-weight:600}
+.bj-hand{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;min-height:66px;align-items:center}
+.bj-card{width:42px;height:60px;background:#fff;border:2px solid #333;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:2px 2px 0 #000;flex-shrink:0}
+.bj-card.red{color:#e63a2e}
+.bj-card-back{background:#1f4e9e;color:#fff;font-size:22px;border-color:#1f4e9e}
+.bj-cv{font-size:15px;line-height:1.1}
+.bj-cs{font-size:13px;line-height:1}
+@keyframes cardDeal{from{opacity:0;transform:translateY(-20px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+.bj-card{animation:cardDeal .2s ease-out}
+.bj-score{font-size:11px;color:#a8d8b0;margin-top:4px}
+.bj-divider{border:none;border-top:1px solid rgba(255,255,255,.15);margin:6px 0}
+.bj-actions{display:flex;gap:8px;margin:8px 0}
+.bj-actions .btn{flex:1;font-size:14px}
+.bj-result{padding:10px 14px;border-radius:6px;font-family:var(--font-display);font-weight:700;font-size:14px;margin:8px 0}
+.bj-result.win{background:#d4f5d4;color:var(--good);border:2px solid var(--good)}
+.bj-result.lose{background:#fff3f0;color:var(--warn);border:2px solid var(--warn)}
+.bj-result.push{background:var(--paper);color:var(--muted);border:2px solid var(--rule)}
+.bj-bet-row{display:flex;align-items:center;gap:6px;justify-content:center;margin:8px 0;font-size:12px;font-weight:600}
+/* ---------- Aukcja ---------- */
+.auction-prompt{text-align:center}
+.auction-title{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.06em;margin-bottom:4px}
+.auction-tile{padding:10px;border:1px solid var(--rule);border-top:6px solid;margin-bottom:12px;background:var(--paper)}
+.auction-round{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+.auction-blind{background:#1a1a2e;border:2px solid var(--ink);border-radius:10px;padding:14px;margin-bottom:12px}
+.auction-who{font-size:13px;font-weight:700;margin-bottom:6px}
+.auction-balance{font-size:11px;color:#aaa;margin-bottom:10px}
+.auction-input{font-size:26px;font-weight:700;width:100%;padding:10px;text-align:center;background:#0d0d1a;border:2px solid var(--yellow);color:var(--yellow);border-radius:6px;font-family:inherit;outline:none}
+.auction-input:focus{border-color:#fff}
+.auction-progress{font-size:11px;color:var(--muted);margin-top:8px}
+.auction-reveal{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:10px;margin-bottom:12px;text-align:left}
+.auction-reveal-row{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:4px;font-size:13px}
+.auction-reveal-row.winner-row{background:var(--yellow);font-weight:700;color:var(--ink)}
+.auction-reveal-row.tie-row{background:#fff3f0;font-weight:700}
+.auction-tie-info{font-size:13px;color:var(--warn);font-weight:700;margin:8px 0;padding:8px;background:#fff3f0;border-radius:6px;border:1px solid var(--warn)}
+/* ---------- Zdrapka ---------- */
+.scratch-prompt{text-align:center}
+.scratch-title{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.08em;margin-bottom:2px}
+.scratch-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.scratch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.scratch-cell{position:relative;height:64px;border-radius:8px;cursor:pointer;overflow:hidden;border:2px solid var(--ink);user-select:none}
+.scratch-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;background:#fff}
+.scratch-value.match{background:#fffacc;color:var(--good)}
+.scratch-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;background:linear-gradient(135deg,#c0c0c0,#888 50%,#c0c0c0);transition:opacity .25s,transform .25s}
+.scratch-cell.scratched .scratch-cover{opacity:0;transform:scale(1.4);pointer-events:none}
+@keyframes scratchWin{0%{transform:scale(1)}40%{transform:scale(1.15)}100%{transform:scale(1)}}
+.scratch-cell.winner{animation:scratchWin .4s ease-out;border-color:var(--good);box-shadow:0 0 10px rgba(46,139,74,.5)}
+.scratch-result{padding:10px 14px;border-radius:6px;font-family:var(--font-display);font-weight:700;font-size:15px;margin:8px 0}
+.scratch-result.win{background:#d4f5d4;color:var(--good);border:2px solid var(--good)}
+.scratch-result.lose{background:#fff3f0;color:var(--warn);border:2px solid var(--warn)}
+/* ---------- Żabka ---------- */
+.zabka-prompt{text-align:center}
+.zabka-header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:2px}
+.zabka-logo{font-size:30px;line-height:1}
+.zabka-title{font-family:var(--font-display);font-weight:700;font-size:20px;color:#1b6e3c;letter-spacing:.06em}
+.zabka-sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.zabka-items{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.zabka-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid var(--rule);background:#f4fdf7;cursor:pointer;transition:border-color .15s,background .15s;text-align:left}
+.zabka-item:hover:not(.cant-afford){border-color:#2d8653;background:#dff5e8}
+.zabka-item-icon{font-size:30px;flex-shrink:0;line-height:1}
+.zabka-item-info{flex:1}
+.zabka-item-name{font-weight:700;font-size:14px;color:var(--ink)}
+.zabka-item-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.3}
+.zabka-item-price{font-family:var(--font-mono);font-weight:700;font-size:16px;color:#1b6e3c;flex-shrink:0}
+.zabka-item.cant-afford{opacity:.45;cursor:not-allowed}
+/* ---------- Jarmark ---------- */
+.jarmark-prompt{text-align:center}
+.jarmark-header{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.06em;margin-bottom:4px}
+.jarmark-pot{font-size:13px;margin:6px 0 10px;padding:8px 14px;background:#fff8e2;border-radius:8px;border:2px solid var(--yellow);line-height:1.5}
+.jarmark-desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.jarmark-rolls{display:flex;flex-direction:column;gap:6px;margin:10px 0;text-align:left}
+.jarmark-roll{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:2px solid var(--rule);background:var(--paper);opacity:0;transform:translateX(-14px);transition:opacity .28s,transform .28s,border-color .2s,background .2s}
+.jarmark-roll.shown{opacity:1;transform:none}
+.jarmark-roll.winner{border-color:var(--yellow);background:#fff8e2}
+.jr-token{font-size:19px;line-height:1;flex-shrink:0}
+.jr-name{flex:1;font-size:13px;font-weight:600}
+.jr-dice{font-family:var(--font-mono);font-weight:700;font-size:15px;min-width:38px;text-align:right}
+.jr-dice.big{font-size:18px;color:var(--good)}
+.jarmark-result{padding:10px 14px;border-radius:8px;font-weight:700;font-size:14px;margin:10px 0 4px;background:var(--yellow);color:var(--ink);border:2px solid #c9960a}
+/* ---------- Automat ---------- */
+.slot-prompt{text-align:center}
+.slot-title{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.08em;margin-bottom:2px}
+.slot-odds{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.slot-machine{display:flex;gap:10px;justify-content:center;background:#111;padding:14px 18px;border-radius:10px;border:3px solid var(--ink);margin-bottom:10px;box-shadow:inset 0 3px 8px rgba(0,0,0,.5)}
+.reel{width:56px;height:56px;background:#fff;border:2px solid #333;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 4px 0 #333;transition:transform .05s}
+@keyframes reelSpin{0%{transform:translateY(-5px) scale(.95)}50%{transform:translateY(5px) scale(1.05)}100%{transform:translateY(-5px) scale(.95)}}
+.reel.spinning{animation:reelSpin .12s infinite}
+.slot-result{padding:10px 14px;border-radius:6px;font-family:var(--font-display);font-weight:700;font-size:15px;margin:8px 0}
+.slot-result.win{background:#d4f5d4;color:var(--good);border:2px solid var(--good)}
+.slot-result.lose{background:#fff3f0;color:var(--warn);border:2px solid var(--warn)}
+.slot-bet{display:flex;align-items:center;gap:6px;justify-content:center;margin:10px 0;font-size:12px;font-weight:600}
+/* ---------- Kredyt ---------- */
+.loan-bar{margin-top:6px;padding:7px 9px;border-radius:5px;border:1.5px solid #4a90d9;background:#edf5ff;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.loan-bar.overdue{border-color:var(--warn);background:#fff3f0}
+.loan-bar.danger{border-color:var(--warn);background:#ffe8e8;animation:loanPulse 1.2s infinite}
+@keyframes loanPulse{0%,100%{background:#ffe8e8}50%{background:#ffc8c8}}
+.loan-bar-left{font-size:11px;font-weight:700;color:#2266aa}
+.loan-bar-left.overdue{color:var(--warn)}
+.loan-bar-owed{font-family:var(--font-display);font-weight:700;font-size:15px;color:#2266aa}
+.loan-bar-owed.overdue{color:var(--warn)}
+.loan-bar-turns{font-size:10px;color:#5a8aaa;margin-top:1px}
+.loan-bar-turns.overdue{color:var(--warn)}
+.loan-pick{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:12px;margin-bottom:8px;box-shadow:2px 2px 0 var(--ink)}
+.loan-pick-title{font-family:var(--font-display);font-weight:700;font-size:14px;margin-bottom:10px}
+.loan-opts{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.loan-opt{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:2px solid var(--rule);border-radius:4px;cursor:pointer;background:var(--paper);transition:border-color .1s}
+.loan-opt:hover{border-color:var(--yellow)}
+.loan-opt.sel{border-color:var(--yellow);background:var(--paper-2)}
+.loan-opt-main{font-weight:700;font-size:14px}
+.loan-opt-info{font-size:10px;color:var(--muted);text-align:right;line-height:1.4}
+.loan-row{display:flex;gap:6px}
+/* pc-loan badge */
+.pc-loan{margin-top:5px;font-size:10px;font-weight:700;color:#2266aa;display:flex;align-items:center;gap:4px}
+.pc-loan.overdue{color:var(--warn)}
+/* pc-monopoly progress */
+.pc-monopoly-bar{margin-top:5px;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--muted)}
+.pc-monopoly-bar.close{color:#b8860b}
+.pc-monopoly-bar.done{color:var(--good);background:#d4f5d4;border-radius:4px;padding:2px 6px;border:1px solid var(--good)}
+.pc-mpip{display:flex;align-items:center;gap:2px}
+.pc-pip{width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0}
+.pc-pip.fill{background:currentColor}
+/* ---------- Stadion ---------- */
+.stadium-prompt{text-align:center}
+.stadium-title{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.05em;margin-bottom:2px}
+.stadium-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.stadium-canvas-wrap{display:flex;justify-content:center;margin-bottom:10px}
+.stadium-zones{display:flex;gap:7px;margin-bottom:10px}
+.sz-btn{flex:1;padding:11px 4px;border:2px solid var(--ink);border-radius:6px;background:#fff;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;transition:all .08s;box-shadow:2px 2px 0 var(--ink)}
+.sz-btn:hover:not(:disabled){background:var(--yellow);transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.sz-btn:active:not(:disabled){transform:translate(1px,1px);box-shadow:0 0 0 var(--ink)}
+.sz-btn:disabled{opacity:.45;cursor:not-allowed}
+.stadium-result{padding:10px 14px;border-radius:6px;font-family:var(--font-display);font-weight:700;font-size:14px;margin:8px 0}
+.stadium-result.goal{background:#d4f5d4;color:var(--good);border:2px solid var(--good)}
+.stadium-result.saved{background:#fff3f0;color:var(--warn);border:2px solid var(--warn)}
+.stadium-hint{font-size:11px;color:var(--muted);margin-bottom:6px}
+/* ---------- Kasyno Lobby ---------- */
+.casino-lobby{text-align:center}
+.casino-lobby-title{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.06em;margin-bottom:10px}
+.casino-game-grid{display:flex;gap:10px;margin-bottom:10px}
+.casino-game-btn{flex:1;padding:14px 8px;background:#0d2b0d;border:2px solid #1e4a1e;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .12s}
+.casino-game-btn:hover{border-color:#ffc21f;background:#133013;transform:translateY(-2px)}
+.casino-game-icon{font-size:30px;line-height:1}
+.casino-game-name{font-size:13px;color:#ffc21f;letter-spacing:.04em}
+/* ---------- Ruletka (Monopoly) ---------- */
+.rl-prompt{text-align:center}
+.rl-canvas-wrap-m{display:flex;justify-content:center;margin-bottom:10px}
+.rl-bets-m{background:#071407;border:1px solid #1a3a1a;border-radius:8px;padding:10px;margin-bottom:8px}
+.rl-bg-label{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#3a6a3a;margin-bottom:4px;font-weight:700}
+.rl-row-m{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:4px}
+.rl-btn-m{padding:4px 7px;border:1.5px solid #1a3a1a;border-radius:5px;background:#0d2b0d;color:#7aaa7a;font-family:inherit;font-weight:600;font-size:11px;cursor:pointer;transition:all .1s}
+.rl-btn-m:hover{border-color:#ffc21f;color:#ffc21f}
+.rl-btn-m.rl-m-on{background:#ffc21f;border-color:#ffc21f;color:#111}
+.rl-btn-m:disabled{opacity:.35;cursor:not-allowed}
+.rl-rouge{border-color:#8b1c1c!important;color:#ff9090!important}
+.rl-rouge.rl-m-on{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+.rl-noir{border-color:#444!important;color:#ccc!important}
+.rl-noir.rl-m-on{background:#222!important;border-color:#888!important;color:#fff!important}
+.rl-zero{border-color:#1a5c2a!important;color:#5dff8a!important}
+.rl-zero.rl-m-on{background:#2e8b4a!important;border-color:#2e8b4a!important;color:#fff!important}
+.rl-num-row-m{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:4px}
+.rl-num-row-m input{width:52px;padding:4px 6px;border:1.5px solid #1a3a1a;border-radius:5px;background:#0d1a0d;color:#1a1410;font-family:inherit;font-size:13px;text-align:center;outline:none}
+.rl-num-row-m input:focus{border-color:#c8960c}
+.rl-selected-m{font-size:10px;color:#c8960c;font-weight:600;margin-bottom:8px;min-height:14px}
+.rl-result-m{padding:8px 12px;border-radius:6px;font-family:var(--font-display);font-weight:700;font-size:13px;margin:6px 0}
+.rl-result-m.win{background:#d4f5d4;color:var(--good);border:2px solid var(--good)}
+.rl-result-m.lose{background:#fff3f0;color:var(--warn);border:2px solid var(--warn)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Data -->
+<script>
+// Plansza Płońskpol
+window.BOARD = [
+  { i:0,  type:'start',  name:'RYNEK',            sub:'Przejdź START · weź 200 zł' },
+  { i:1,  type:'street', name:'ul. Prosta',    group:'brown',   price:60,  rent:[2,10,30,90,160,250] },
+  { i:2,  type:'chest',  name:'Skarb Miejski' },
+  { i:3,  type:'street', name:'ul. Zduńska',      group:'brown',   price:60,  rent:[4,20,60,180,320,450] },
+  { i:4,  type:'tax',    name:'Podatek od psa',   amount:200, sub:'Zapłać 200 zł' },
+  { i:5,  type:'rail',   name:'Dworzec PKP',      price:200 },
+  { i:6,  type:'street', name:'ul. Wspólna',      group:'lblue',   price:100, rent:[6,30,90,270,400,550] },
+  { i:7,  type:'chance', name:'Z życia Płońska' },
+  { i:8,  type:'street', name:'ul. Warszawska Stara', group:'lblue', price:100, rent:[6,30,90,270,400,550] },
+  { i:9,  type:'street', name:'ul. Sienkiewicza', group:'lblue',   price:120, rent:[8,40,100,300,450,600] },
+  { i:10, type:'jail',   name:'ARESZT MIEJSKI',   sub:'stajesz tu = idziesz siedzieć!' },
+  { i:11, type:'street', name:'ul. 19 Stycznia',  group:'pink',    price:140, rent:[10,50,150,450,625,750] },
+  { i:12, type:'zabka',   name:'ŻABKA',              sub:'sklep całodobowy!' },
+  { i:13, type:'street', name:'ul. Rutkowskiego', group:'pink',    price:140, rent:[10,50,150,450,625,750] },
+  { i:14, type:'street', name:'ul. Płocka',       group:'pink',    price:160, rent:[12,60,180,500,700,900] },
+  { i:15, type:'rail',   name:'Dworzec PKS',      price:200 },
+  { i:16, type:'street', name:'ul. Kopernika',    group:'orange',  price:180, rent:[14,70,200,550,750,950] },
+  { i:17, type:'chest',  name:'Skarb Miejski' },
+  { i:18, type:'street', name:'ul. 1 Maja',       group:'orange',  price:180, rent:[14,70,200,550,750,950] },
+  { i:19, type:'street', name:'ul. Grunwaldzka',  group:'orange',  price:200, rent:[16,80,220,600,800,1000] },
+  { i:20, type:'stadium', name:'STADION PŁOŃSK',    sub:'strzel karnego!' },
+  { i:21, type:'street', name:'ul. Ciechanowska', group:'red',     price:220, rent:[18,90,250,700,875,1050] },
+  { i:22, type:'chance', name:'Z życia Płońska' },
+  { i:23, type:'street', name:'ul. Wolności',     group:'red',     price:220, rent:[18,90,250,700,875,1050] },
+  { i:24, type:'street', name:'Rynek Kopernika',  group:'red',     price:240, rent:[20,100,300,750,925,1100] },
+  { i:25, type:'rail',   name:'Przystanek Mazovia', price:200 },
+  { i:26, type:'street', name:'Plac 15 Sierpnia', group:'yellow',  price:260, rent:[22,110,330,800,975,1150] },
+  { i:27, type:'street', name:'ul. Warszawska',   group:'yellow',  price:260, rent:[22,110,330,800,975,1150] },
+  { i:28, type:'jarmark', name:'JARMARK PŁOŃSKI',   sub:'wszyscy do puli!' },
+  { i:29, type:'street', name:'ul. Młodzieżowa',  group:'yellow',  price:280, rent:[24,120,360,850,1025,1200] },
+  { i:30, type:'casino',  name:'KASYNO',           sub:'zagraj w blackjack' },
+  { i:31, type:'street', name:'os. Jana Pawła II', group:'green',  price:300, rent:[26,130,390,900,1100,1275] },
+  { i:32, type:'street', name:'os. Piaski',       group:'green',   price:300, rent:[26,130,390,900,1100,1275] },
+  { i:33, type:'chest',  name:'Skarb Miejski' },
+  { i:34, type:'street', name:'ul. Wyszogrodzka', group:'green',   price:320, rent:[28,150,450,1000,1200,1400] },
+  { i:35, type:'rail',   name:'Pętla Strzelecka', price:200 },
+  { i:36, type:'chance', name:'Z życia Płońska' },
+  { i:37, type:'street', name:'ul. Klonowa',      group:'blue',    price:350, rent:[35,175,500,1100,1300,1500] },
+  { i:38, type:'tax',    name:'Podatek od willi', amount:100, sub:'Zapłać 100 zł' },
+  { i:39, type:'street', name:'ul. Mazowiecka',  group:'blue',    price:400, rent:[50,200,600,1400,1700,2000] },
+];
+
+window.GROUP_META = {
+  brown:  { color:'#8B5A2B', label:'Stare Miasto' },
+  lblue:  { color:'#7FC7E8', label:'Za Torami' },
+  pink:   { color:'#E94B9A', label:'Śródmieście' },
+  orange: { color:'#F29325', label:'Centrum' },
+  red:    { color:'#E63A2E', label:'Rynek' },
+  yellow: { color:'#FFC21F', label:'Place' },
+  green:  { color:'#2E8B4A', label:'Osiedla' },
+  blue:   { color:'#1F4E9E', label:'Willowa' },
+};
+
+window.GROUP_SIZE = { brown:2, lblue:3, pink:3, orange:3, red:3, yellow:3, green:3, blue:2 };
+
+window.CITY_EVENTS = [
+  { text:'Remont Rynku — wszystkie czynsze +20%',           turns:2, effect:{type:'rent_mult',   val:1.2}  },
+  { text:'Kryzys gospodarczy — wszystkie czynsze -25%',     turns:2, effect:{type:'rent_mult',   val:0.75} },
+  { text:'Festiwal Chopina — przejście przez START +100 zł',turns:2, effect:{type:'go_bonus',    val:100}  },
+  { text:'Kontrola skarbowa — podatki podwójne',            turns:2, effect:{type:'tax_mult',    val:2}    },
+  { text:'Boom inwestycyjny — budowa tańsza o 25%',         turns:2, effect:{type:'build_disc',  val:0.75} },
+  { text:'Strajk PKS — dworce nie pobierają czynszu',       turns:2, effect:{type:'rail_free'}             },
+  { text:'Remont wodociągów — firmy pobierają 2× czynsz',   turns:2, effect:{type:'util_mult',   val:2}    },
+  { text:'Awaria prądu — wszyscy tracą 80 zł',              turns:0, effect:{type:'all_pay',     val:80}   },
+  { text:'Dotacja z UE — każdy dostaje 100 zł',             turns:0, effect:{type:'all_gain',    val:100}  },
+  { text:'Targi regionalne — właściciele hoteli +150 zł',   turns:0, effect:{type:'hotel_bonus', val:150}  },
+  { text:'Podatek od bogactwa — najbogatszy płaci 200 zł',  turns:0, effect:{type:'richest_pay', val:200}  },
+  { text:'Spokojny tydzień w Płońsku — brak zdarzeń',       turns:0, effect:{type:'none'}                 },
+];
+</script>
+
+<script>
+// Karty
+window.CHANCE = [
+  { text:'Utknąłeś w korku na Warszawskiej. Przesuń się o 3 pola wstecz.', act:{type:'move', n:-3} },
+  { text:'Mandat od straży miejskiej na Rynku. Zapłać 50 zł.', act:{type:'money', n:-50} },
+  { text:'Wygrałeś konkurs pieczenia sękacza na Dniach Płońska. +100 zł.', act:{type:'money', n:+100} },
+  { text:'Idziesz do ARESZTU. Bez pobierania 200 zł.', act:{type:'jail'} },
+  { text:'Bilet do muzeum OSM. Przejdź do OSM Płońsk.', act:{type:'move_to', i:12} },
+  { text:'Pociąg odjeżdża! Przejdź do najbliższego dworca.', act:{type:'nearest_rail'} },
+  { text:'Twój pomnik Chopina potrzebuje renowacji. Zapłać 25 zł za każdy domek, 100 zł za hotel.', act:{type:'repairs', house:25, hotel:100} },
+  { text:'Wyjście z aresztu za kaucją — zachowaj tę kartę.', act:{type:'get_out_jail'} },
+  { text:'Rada Miasta przyznaje ci dotację. +150 zł.', act:{type:'money', n:+150} },
+  { text:'Remont na Grunwaldzkiej — wracasz na Rynek (START).', act:{type:'move_to', i:0} },
+  { text:'Spotkanie rodzinne u babci w Arcelinie. Pojedź naprzód o 2 pola.', act:{type:'move', n:+2} },
+  { text:'Zapomniałeś karnetu na basen. –30 zł.', act:{type:'money', n:-30} },
+];
+
+window.CHEST = [
+  { text:'Wygrałeś w loterii parafialnej. +200 zł.', act:{type:'money', n:+200} },
+  { text:'Zwrot podatku z Urzędu Skarbowego. +75 zł.', act:{type:'money', n:+75} },
+  { text:'Zepsuł się piec — rachunek z PEC. –100 zł.', act:{type:'money', n:-100} },
+  { text:'Sprzedałeś działkę pod Nową Warszawską. +250 zł.', act:{type:'money', n:+250} },
+  { text:'Szpital Powiatowy — opłata za pobyt. –50 zł.', act:{type:'money', n:-50} },
+  { text:'Urodziny — każdy gracz daje ci po 20 zł.', act:{type:'birthday', n:20} },
+  { text:'Idziesz do ARESZTU. Bez pobierania 200 zł.', act:{type:'jail'} },
+  { text:'Dotacja z budżetu obywatelskiego. +100 zł.', act:{type:'money', n:+100} },
+  { text:'Wyjście z aresztu za dobre sprawowanie — zachowaj.', act:{type:'get_out_jail'} },
+  { text:'Składka na OSP Płońsk. –40 zł od każdego domku.', act:{type:'repairs', house:40, hotel:115} },
+  { text:'Stypendium burmistrza. +120 zł.', act:{type:'money', n:+120} },
+  { text:'Awaria wodociągów na Sienkiewicza. –80 zł.', act:{type:'money', n:-80} },
+];
+</script>
+
+<script>
+// Logika stanu gry
+(function(){
+  const BOARD = window.BOARD;
+  const GROUP_SIZE = window.GROUP_SIZE;
+
+  const TOKENS = [
+    { emoji:'🥛', label:'Butelka mleka OSM' },
+    { emoji:'🎹', label:'Fortepian Chopina' },
+    { emoji:'🚌', label:'PKS' },
+    { emoji:'🏰', label:'Zamek Płoński' },
+    { emoji:'🥖', label:'Sękacz' },
+    { emoji:'⚽', label:'Mazovia' },
+  ];
+  window.TOKENS = TOKENS;
+
+  function makePlayer(idx, name, startMoney){
+    return {
+      id: idx, name,
+      token: TOKENS[idx].emoji,
+      tokenLabel: TOKENS[idx].label,
+      pos: 0, money: startMoney,
+      owns: new Set(), mortgaged: new Set(),
+      houses: {}, jail: false, jailTurns: 0,
+      getOutCards: 0, bankrupt: false, loan: null,
+    };
+  }
+
+  function createGame(playerNames, opts){
+    opts = opts || {};
+    const startMoney = opts.startMoney || 1500;
+    const timeLimit  = opts.timeLimit  || null; // sekundy, null = bezlimitu
+    const players = playerNames.map((n,i)=>makePlayer(i, n, startMoney));
+    return {
+      players, cur: 0, dice: [1,1], doublesCount: 0,
+      phase: 'roll', chanceIdx: 0, chestIdx: 0, log: [],
+      owners: {}, lastRoll: null, ownedCards: {},
+      opts: { startMoney, passGo: 200 },
+      activeEvent: null, turnCount: 0,
+      timeLimit, startTime: timeLimit ? Date.now() : null,
+      timeUpRanking: null, monopolyWinner: null,
+    };
+  }
+  window.createGame = createGame;
+
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+  window.shuffle = shuffle;
+
+  function hasFullGroup(game, playerId, group){
+    const tiles = BOARD.filter(t=>t.group===group);
+    return tiles.every(t => game.owners[t.i] === playerId && !game.players[playerId].mortgaged.has(t.i));
+  }
+  window.hasFullGroup = hasFullGroup;
+
+  function countOwned(game, playerId, type){
+    let n=0;
+    BOARD.forEach(t=>{
+      if(t.type===type && game.owners[t.i]===playerId && !game.players[playerId].mortgaged.has(t.i)) n++;
+    });
+    return n;
+  }
+  window.countOwned = countOwned;
+
+  function rentFor(game, tile, roll){
+    const ownerId = game.owners[tile.i];
+    if(ownerId==null) return 0;
+    const owner = game.players[ownerId];
+    if(owner.mortgaged.has(tile.i)) return 0;
+    const ev = game.activeEvent ? game.activeEvent.effect : null;
+
+    if(tile.type==='street'){
+      const h = owner.houses[tile.i] || 0;
+      let rent = tile.rent[h];
+      if(h===0 && hasFullGroup(game, ownerId, tile.group)) rent *= 2;
+      if(ev && ev.type==='rent_mult') rent = Math.round(rent * ev.val);
+      return rent;
+    }
+    if(tile.type==='rail'){
+      if(ev && ev.type==='rail_free') return 0;
+      const n = countOwned(game, ownerId, 'rail');
+      return [0,25,50,100,200][n];
+    }
+    if(tile.type==='utility'){
+      const n = countOwned(game, ownerId, 'utility');
+      let rent = (n===2 ? 10 : 4) * roll;
+      if(ev && ev.type==='util_mult') rent = Math.round(rent * ev.val);
+      return rent;
+    }
+    return 0;
+  }
+  window.rentFor = rentFor;
+
+  function netWorth(game, pid){
+    const p = game.players[pid];
+    let v = p.money;
+    p.owns.forEach(i=>{
+      const t = BOARD[i];
+      v += (p.mortgaged.has(i) ? t.price/2 : t.price);
+      const h = p.houses[i]||0;
+      if(t.type==='street') v += h * (t.price/2);
+    });
+    return v|0;
+  }
+  window.netWorth = netWorth;
+})();
+</script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  const cfg = {
+    apiKey:"AIzaSyCxcMz039uHgSWcbq2WEEpdCNan5UEPrMw",
+    authDomain:"plonskpol.firebaseapp.com",
+    databaseURL:"https://plonskpol-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:"plonskpol",
+    storageBucket:"plonskpol.firebasestorage.app",
+    messagingSenderId:"373678315087",
+    appId:"1:373678315087:web:e3f85540065ac2b496bc3a"
+  };
+  firebase.initializeApp(cfg);
+  const db = firebase.database();
+
+  // Session ID — persists across refreshes
+  function getSid(){
+    let id = sessionStorage.getItem('pp_sid');
+    if(!id){ id = Math.random().toString(36).substr(2,10); sessionStorage.setItem('pp_sid',id); }
+    return id;
+  }
+  function genCode(){ return Math.random().toString(36).substr(2,6).toUpperCase(); }
+
+  function serG(g){
+    return {...g, players:g.players.map(p=>({...p,owns:[...p.owns],mortgaged:[...p.mortgaged]}))};
+  }
+  // Firebase drops empty {}/[] — restore defaults
+  function toArr(v){ if(!v) return []; if(Array.isArray(v)) return v; return Object.values(v); }
+  function deserG(d){
+    const g={...d};
+    g.owners     = g.owners     || {};
+    g.ownedCards = g.ownedCards || {};
+    g.log        = toArr(g.log);
+    g.dice       = toArr(g.dice).length===2 ? toArr(g.dice) : [1,1];
+    g.players    = toArr(g.players).map(p=>({
+      ...p,
+      houses:   p.houses    || {},
+      owns:     new Set(toArr(p.owns)),
+      mortgaged:new Set(toArr(p.mortgaged)),
+    }));
+    return g;
+  }
+
+  async function createRoom(code, game){
+    await db.ref(`rooms/${code}/state`).set(serG(game));
+    await db.ref(`rooms/${code}/slots/0`).set(getSid());
+  }
+  async function writeState(code, game){
+    return db.ref(`rooms/${code}/state`).set(serG(game));
+  }
+  function listenState(code, cb){
+    db.ref(`rooms/${code}/state`).on('value', snap=>{ const d=snap.val(); if(d) cb(deserG(d)); });
+  }
+  function unlistenState(code){ db.ref(`rooms/${code}/state`).off(); }
+
+  async function joinRoom(code, sid){
+    const snap = await db.ref(`rooms/${code}`).once('value');
+    const room = snap.val();
+    if(!room||!room.state) return {error:'Pokój nie istnieje — sprawdź kod'};
+    const n = room.state.players.length;
+    const slots = room.slots||{};
+    // Already assigned?
+    for(let i=0;i<n;i++) if(slots[i]===sid) return {idx:i, game:deserG(room.state)};
+    // Find free slot
+    for(let i=0;i<n;i++){
+      if(!slots[i]){
+        await db.ref(`rooms/${code}/slots/${i}`).set(sid);
+        return {idx:i, game:deserG(room.state)};
+      }
+    }
+    return {error:'Wszystkie miejsca zajęte'};
+  }
+
+  window.FB = {getSid, genCode, createRoom, writeState, listenState, unlistenState, joinRoom};
+})();
+</script>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+// ===== UI TILE =====
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+const BOARD = window.BOARD;
+const GROUP_META = window.GROUP_META;
+const GROUP_SIZE = window.GROUP_SIZE;
+const CHANCE = window.CHANCE;
+const CHEST = window.CHEST;
+const TOKENS = window.TOKENS;
+
+const TOKEN_COLORS = ['#E63A2E','#1F4E9E','#2E8B4A','#F29325','#7B3FA0','#0B7A8B'];
+function TOKEN_COLOR(id){ return TOKEN_COLORS[id % TOKEN_COLORS.length]; }
+window.TOKEN_COLOR = TOKEN_COLOR;
+
+function Tile({ tile, state, onClick, animState }) {
+  const group = tile.group ? GROUP_META[tile.group] : null;
+  const ownerId = state.owners[tile.i];
+  const owner = ownerId != null ? state.players[ownerId] : null;
+  const houses = owner ? (owner.houses[tile.i] || 0) : 0;
+  const mortgaged = owner && owner.mortgaged.has(tile.i);
+  const i = tile.i;
+  const isCorner = i===0 || i===10 || i===20 || i===30;
+  const side = i<10 ? 'bottom' : i<20 ? 'left' : i<30 ? 'top' : 'right';
+  const here = state.players.filter((p, idx) => {
+    if (p.bankrupt) return false;
+    const dPos = (animState && animState.playerId === idx) ? animState.displayPos : p.pos;
+    return dPos === i;
+  });
+  const movingHere = animState && animState.displayPos === i;
+
+  return (
+    <div className={`tile tile-${side} ${isCorner?'tile-corner':''} type-${tile.type}`}
+         onClick={onClick} data-i={tile.i}>
+      {group && <div className="tile-color-bar" style={{background:group.color}} />}
+      {tile.type==='street' && houses>0 && (
+        <div className="houses-row">
+          {houses<5
+            ? Array.from({length:houses}).map((_,k)=><span key={k} className="house">🏠</span>)
+            : <span className="hotel">🏨</span>}
+        </div>
+      )}
+      <div className="tile-body">
+        <div className="tile-name">{tile.name}</div>
+        {tile.type==='street' && <div className="tile-price">{tile.price} zł</div>}
+        {tile.type==='rail' && <div className="tile-icon">🚉</div>}
+        {tile.type==='utility' && <div className="tile-icon">{tile.i===12?'🥛':'🔥'}</div>}
+        {tile.type==='chance' && <div className="tile-icon">❓</div>}
+        {tile.type==='chest' && <div className="tile-icon">📜</div>}
+        {tile.type==='tax' && <div className="tile-icon">💸</div>}
+        {tile.type==='jail' && <div className="tile-icon">🔒</div>}
+        {tile.type==='gotojail' && <div className="tile-icon">👮</div>}
+        {tile.type==='parking' && <div className="tile-icon">🏰</div>}
+        {tile.type==='stadium' && <div className="tile-icon">⚽</div>}
+        {tile.type==='slot' && <div className="tile-icon">🎰</div>}
+        {tile.type==='zabka' && <div className="tile-icon">🐸</div>}
+        {tile.type==='jarmark' && <div className="tile-icon">🎪</div>}
+        {tile.type==='casino' && <div className="tile-icon">🃏</div>}
+        {tile.type==='start' && <div className="tile-icon">➤</div>}
+        {tile.sub && <div className="tile-sub">{tile.sub}</div>}
+      </div>
+      {owner && <div className="owner-flag" style={{background:TOKEN_COLOR(ownerId)}} title={owner.name}>{owner.token}</div>}
+      {mortgaged && <div className="mortgaged-overlay">ZASTAW</div>}
+      {here.length>0 && (
+        <div className="pawns">
+          {here.map(p => <span
+            key={p.id}
+            className={`pawn${movingHere && animState.playerId===p.id ? ' pawn-moving' : ''}`}
+            style={{background:TOKEN_COLOR(p.id)}}
+          >{p.token}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== UI CARDS =====
+function housePrice(group){
+  if(group==='brown' || group==='lblue') return 50;
+  if(group==='pink' || group==='orange') return 100;
+  if(group==='red' || group==='yellow')  return 150;
+  if(group==='green' || group==='blue')  return 200;
+  return 50;
+}
+window.housePrice = housePrice;
+
+function PropertyCard({ tile, state, onClose, api }) {
+  if(!tile) return null;
+  const group = tile.group ? GROUP_META[tile.group] : null;
+  const ownerId = state.owners[tile.i];
+  const owner = ownerId != null ? state.players[ownerId] : null;
+  const cur = state.players[state.cur];
+  const houses = owner ? (owner.houses[tile.i]||0) : 0;
+  const hasGroup = owner && tile.group && hasFullGroup(state, ownerId, tile.group);
+  const canBuild = owner && owner.id===cur.id && hasGroup && !owner.mortgaged.has(tile.i) && houses<5 && tile.type==='street';
+  const canSell = owner && owner.id===cur.id && houses>0;
+  const canMortgage = owner && owner.id===cur.id && !owner.mortgaged.has(tile.i) && houses===0;
+  const canUnmortgage = owner && owner.id===cur.id && owner.mortgaged.has(tile.i);
+  const houseCost = tile.type==='street' ? housePrice(tile.group) : 0;
+
+  return (
+    <div className="card-backdrop" onClick={onClose}>
+      <div className="prop-card" onClick={e=>e.stopPropagation()}>
+        {group && <div className="prop-bar" style={{background:group.color}}>
+          <div className="prop-group-label">{group.label.toUpperCase()}</div>
+          <div className="prop-title">{tile.name}</div>
+        </div>}
+        {!group && <div className="prop-bar" style={{background:'#1a1a1a',color:'#fff'}}>
+          <div className="prop-title">{tile.name}</div>
+          {tile.sub && <div className="prop-sub-plain">{tile.sub}</div>}
+        </div>}
+        {tile.type==='street' && (
+          <div className="rent-table">
+            <div className="rent-row"><span>Czynsz</span><b>{tile.rent[0]} zł</b></div>
+            <div className="rent-row"><span>z całą dzielnicą</span><b>{tile.rent[0]*2} zł</b></div>
+            <div className="rent-sep">Z domkami</div>
+            {[1,2,3,4].map(n => (
+              <div key={n} className="rent-row">
+                <span>{'🏠'.repeat(n)}</span><b>{tile.rent[n]} zł</b>
+              </div>
+            ))}
+            <div className="rent-row hotel"><span>🏨 Hotel</span><b>{tile.rent[5]} zł</b></div>
+            <div className="rent-foot">
+              Cena domku/hotelu: <b>{houseCost} zł</b><br/>
+              Zastaw: <b>{tile.price/2} zł</b>
+            </div>
+          </div>
+        )}
+        {tile.type==='rail' && (
+          <div className="rent-table">
+            <div className="rent-row"><span>1 dworzec</span><b>25 zł</b></div>
+            <div className="rent-row"><span>2 dworce</span><b>50 zł</b></div>
+            <div className="rent-row"><span>3 dworce</span><b>100 zł</b></div>
+            <div className="rent-row"><span>4 dworce</span><b>200 zł</b></div>
+            <div className="rent-foot">Cena: <b>{tile.price} zł</b></div>
+          </div>
+        )}
+        {tile.type==='utility' && (
+          <div className="rent-table">
+            <div className="rent-row"><span>1 firma</span><b>4× rzut</b></div>
+            <div className="rent-row"><span>2 firmy</span><b>10× rzut</b></div>
+            <div className="rent-foot">Cena: <b>{tile.price} zł</b></div>
+          </div>
+        )}
+        <div className="prop-owner">
+          {owner
+            ? <span>Właściciel: <b style={{color:TOKEN_COLOR(ownerId)}}>{owner.token} {owner.name}</b>
+                    {owner.mortgaged.has(tile.i) && ' · ZASTAW'}</span>
+            : <span>Nikt nie posiada</span>}
+        </div>
+        {owner && owner.id===cur.id && (
+          <div className="prop-actions">
+            {canBuild && <button className="btn btn-primary" onClick={()=>api.buildHouse(tile.i)}>
+              {houses<4?'Buduj domek':'Buduj hotel'} ({houseCost} zł)
+            </button>}
+            {canSell && <button className="btn" onClick={()=>api.sellHouse(tile.i)}>
+              Sprzedaj {houses===5?'hotel':'domek'} ({houseCost/2} zł)
+            </button>}
+            {canMortgage && <button className="btn" onClick={()=>api.mortgage(tile.i)}>
+              Zastaw ({tile.price/2} zł)
+            </button>}
+            {canUnmortgage && <button className="btn" onClick={()=>api.unmortgage(tile.i)}>
+              Wykup z zastawu ({Math.ceil(tile.price*0.55)} zł)
+            </button>}
+          </div>
+        )}
+        <button className="btn btn-close" onClick={onClose}>Zamknij</button>
+      </div>
+    </div>
+  );
+}
+
+function PlayerCard({ player, isActive, state }) {
+  const ownedByGroup = {};
+  player.owns.forEach(i=>{
+    const t = BOARD[i];
+    const key = t.group || t.type;
+    (ownedByGroup[key] = ownedByGroup[key] || []).push(t);
+  });
+
+  // Monopoly progress
+  const completeGroups = Object.entries(_GROUP_TILES).filter(([,tiles])=>tiles.every(i=>player.owns.has(i))).length;
+  const railsOwned     = _RAIL_IDS.filter(i=>player.owns.has(i)).length;
+  const isDone  = completeGroups>=3 && railsOwned===4;
+  const isClose = !isDone && (completeGroups>=2 || railsOwned>=3);
+  return (
+    <div className={`player-card ${isActive?'active':''} ${player.bankrupt?'bankrupt':''}`}
+         style={{'--pc':TOKEN_COLOR(player.id)}}>
+      <div className="pc-head">
+        <div className="pc-token" style={{background:TOKEN_COLOR(player.id)}}>{player.token}</div>
+        <div className="pc-name-wrap">
+          <div className="pc-name">{player.name}</div>
+          <div className="pc-role">{player.tokenLabel}</div>
+        </div>
+        <div className="pc-money">{player.money} <span>zł</span></div>
+      </div>
+      {player.jail && <div className="pc-jail">🔒 W ARESZCIE (tura {player.jailTurns+1}/3)</div>}
+      {player.getOutCards>0 && <div className="pc-card-out">🎫 Wyjście z aresztu ×{player.getOutCards}</div>}
+      {player.loan && (
+        <div className={`pc-loan${player.loan.turnsLeft<=0?' overdue':''}`}>
+          💳 Kredyt: {player.loan.owed} zł
+          {player.loan.turnsLeft>0 ? ` · ${player.loan.turnsLeft} tur` : ' · ⚠️ PO TERMINIE'}
+        </div>
+      )}
+      <div className="pc-holdings">
+        {Object.entries(ownedByGroup).map(([k, tiles])=>{
+          const meta = GROUP_META[k];
+          const color = meta ? meta.color : (k==='rail'?'#111':'#666');
+          return (
+            <div key={k} className="pc-group" title={meta?meta.label:k}>
+              <span className="pc-group-bar" style={{background:color}}/>
+              <span className="pc-group-count">{tiles.length}{GROUP_SIZE[k]?`/${GROUP_SIZE[k]}`:''}</span>
+            </div>
+          );
+        })}
+        {player.owns.size===0 && <span className="pc-empty">bez posiadłości</span>}
+      </div>
+      {(isDone || isClose || completeGroups>0 || railsOwned>=2) && !player.bankrupt && (
+        <div className={`pc-monopoly-bar${isDone?' done':isClose?' close':''}`}>
+          {isDone ? '👑 MONOPOL!' : (
+            <>
+              <span className="pc-mpip">
+                🎨
+                {[0,1,2].map(n=><span key={n} className={`pc-pip${n<completeGroups?' fill':''}`}/>)}
+              </span>
+              <span className="pc-mpip">
+                🚉
+                {[0,1,2,3].map(n=><span key={n} className={`pc-pip${n<railsOwned?' fill':''}`}/>)}
+              </span>
+              <span style={{opacity:.7}}>{completeGroups}/3 kolorów · {railsOwned}/4 dworców</span>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== UI PANELS =====
+function RoomCodeBadge({ code }) {
+  const [copied, setCopied] = useState(false);
+  function copy(){
+    navigator.clipboard.writeText(code).catch(()=>{});
+    setCopied(true); setTimeout(()=>setCopied(false), 2000);
+  }
+  return (
+    <div className="hdr-room" onClick={copy} title="Kliknij żeby skopiować kod">
+      🏠 Pokój:&nbsp;<span className="hdr-room-code">{code}</span>
+      {copied && <span className="hdr-room-copied">✓ skopiowano</span>}
+    </div>
+  );
+}
+
+function Header({ game, api, timeLeft, roomCode, isMyTurn, myIdx }) {
+  function fmt(s){
+    if(s==null) return null;
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+  let timerClass = 'hdr-timer';
+  if(timeLeft != null && timeLeft <= 60) timerClass += ' danger';
+  else if(timeLeft != null && timeLeft <= 180) timerClass += ' warn';
+
+  return (
+    <header className="hdr">
+      <div className="hdr-logo">
+        <div className="logo-mark">
+          <span className="logo-circle" style={{background:'var(--red)'}}></span>
+          <span className="logo-circle" style={{background:'var(--yellow)'}}></span>
+        </div>
+        <div className="logo-text">
+          <div className="logo-main">PŁOŃSKPOL</div>
+          <div className="logo-sub">gra o Mieście Młodości Chopina</div>
+        </div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10,flex:1,justifyContent:'center'}}>
+        {timeLeft != null && (
+          <div className={timerClass}>
+            <span className="hdr-timer-icon">⏰</span>
+            {fmt(timeLeft)}
+          </div>
+        )}
+        {roomCode && <RoomCodeBadge code={roomCode}/>}
+        {roomCode && myIdx !== null && (
+          <div className={`hdr-turn-badge ${isMyTurn?'mine':'wait'}`}>
+            {isMyTurn ? '🟢 Twoja tura!' : `⏳ ${game.players[game.cur]?.name}…`}
+          </div>
+        )}
+      </div>
+      <div className="hdr-actions">
+        <button className="btn btn-ghost" onClick={()=>{
+          if(confirm('Wyjść z gry i wrócić do lobby?')) api.resetGame();
+        }}>Wyjdź</button>
+      </div>
+    </header>
+  );
+}
+
+function Board({ game, onTileClick, animState }) {
+  function gridFor(i){
+    if(i<=10)  return { row: 11, col: 11 - i };
+    if(i<=20)  return { row: 11 - (i-10), col: 1 };
+    if(i<=30)  return { row: 1, col: 1 + (i-20) };
+    return           { row: 1 + (i-30), col: 11 };
+  }
+  return (
+    <div className="board-wrap">
+      <div className="board">
+        {BOARD.map(t => {
+          const g = gridFor(t.i);
+          return (
+            <div key={t.i} className="cell" style={{gridRow: g.row, gridColumn: g.col}}>
+              <Tile tile={t} state={game} onClick={()=>onTileClick(t)} animState={animState} />
+            </div>
+          );
+        })}
+        <BoardCenter game={game}/>
+      </div>
+    </div>
+  );
+}
+
+const DIE_DOTS = {
+  1: ['c'], 2: ['tl','br'], 3: ['tl','c','br'],
+  4: ['tl','tr','bl','br'], 5: ['tl','tr','c','bl','br'],
+  6: ['tl','tr','ml','mr','bl','br'],
+};
+
+function Die({ value }) {
+  const dots = DIE_DOTS[value] || [];
+  return (
+    <div className="die">
+      {dots.map((d,i)=><span key={i} className="dot" style={{gridArea:d}}/>)}
+    </div>
+  );
+}
+
+function BoardCenter({ game }) {
+  const dice = game.dice;
+  const cur = game.players[game.cur];
+  return (
+    <div className="board-center">
+      <div className="center-logo">
+        <div className="cl-top">PŁOŃSKPOL</div>
+        <div className="cl-chopin">
+          <div className="chopin-placeholder">
+            <div className="cp-note">♪</div>
+            <div className="cp-txt">tu pomnik<br/>Chopina</div>
+          </div>
+        </div>
+        <div className="cl-dice">
+          <Die value={dice[0]}/>
+          <Die value={dice[1]}/>
+        </div>
+        <div className="cl-turn">
+          tura: <b style={{color:TOKEN_COLOR(cur.id)}}>{cur.token} {cur.name}</b>
+        </div>
+        <div className="cl-deck-labels">
+          <div className="deck-label chance">Z życia Płońska</div>
+          <div className="deck-label chest">Skarb Miejski</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TurnPanel({ game, api, isAnimating, isMyTurn, myIdx }) {
+  const cur = game.players[game.cur];
+  const tile = BOARD[cur.pos];
+
+  if(game.phase === 'gameover'){
+    const isTimeUp    = !!game.timeUpRanking;
+    const isMonopoly  = game.monopolyWinner != null;
+    const nwFn = window.netWorth || ((g,pid)=>g.players[pid].money);
+
+    let ranking = game.timeUpRanking;
+    if(!ranking){
+      ranking = game.players
+        .map(p=>({...p, nw: nwFn(game, p.id)}))
+        .sort((a,b)=>b.nw-a.nw);
+    }
+
+    let title = '🏆 Koniec gry!';
+    if(isTimeUp)   title = '⏰ Czas minął!';
+    if(isMonopoly) title = '👑 MONOPOLISTA!';
+
+    const monopolyP = isMonopoly ? game.players[game.monopolyWinner] : null;
+
+    return <div className="turn-panel">
+      <div className="gg">{title}</div>
+      {isMonopoly && (
+        <div style={{margin:'6px 0 10px',padding:'10px 12px',background:'linear-gradient(135deg,#fff8e2,#fff0b0)',border:'2px solid var(--yellow)',borderRadius:'8px',fontSize:'13px',fontWeight:600,lineHeight:1.5,textAlign:'center'}}>
+          {monopolyP.token} <b>{monopolyP.name}</b><br/>
+          <span style={{fontSize:'11px',fontWeight:400,color:'var(--muted)'}}>
+            zgromadził 3 komplety kolorów + wszystkie 4 dworce
+          </span>
+        </div>
+      )}
+      <div style={{width:'100%',marginTop:'4px'}}>
+        {ranking.map((p,i)=>(
+          <div key={p.id} style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 8px',marginBottom:'4px',borderRadius:'6px',background:i===0?'rgba(255,194,31,0.18)':'var(--paper)',border:i===0?'1.5px solid var(--yellow)':'1px solid var(--rule)'}}>
+            <span style={{fontWeight:700,fontSize:'16px',minWidth:'22px',textAlign:'center'}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`}</span>
+            <span style={{fontSize:'18px'}}>{p.token}</span>
+            <span style={{fontWeight:600,flex:1}}>{p.name}</span>
+            <span style={{fontFamily:'var(--font-mono)',fontWeight:700,fontSize:'13px',color:i===0?'#b8860b':'var(--muted)'}}>{p.nw} zł</span>
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-primary" style={{marginTop:'10px'}} onClick={api.resetGame}>Nowa gra</button>
+    </div>;
+  }
+
+  // Not my turn — show waiting panel (but NOT during auction where everyone participates)
+  if(isMyTurn === false && game.phase !== 'auction'){
+    return (
+      <div className="turn-panel">
+        <div className="tp-head">tura gracza</div>
+        <div className="tp-player" style={{color:TOKEN_COLOR(cur.id)}}>
+          <span className="tp-token">{cur.token}</span>
+          <span className="tp-name">{cur.name}</span>
+        </div>
+        <div className="tp-pos">na polu: <b>{tile.name}</b></div>
+        <div className="mp-wait">
+          <div className="mp-wait-label">⏳ Czekaj na ruch</div>
+          <div className="mp-wait-player">{cur.token} {cur.name}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="turn-panel">
+      <div className="tp-head">tura gracza</div>
+      <div className="tp-player" style={{color:TOKEN_COLOR(cur.id)}}>
+        <span className="tp-token">{cur.token}</span>
+        <span className="tp-name">{cur.name}</span>
+      </div>
+      <div className="tp-pos">na polu: <b>{tile.name}</b></div>
+      {isAnimating && <div style={{textAlign:'center',padding:'14px 0',fontSize:'15px',letterSpacing:'.05em'}}>🎲 pionek się porusza…</div>}
+      {!isAnimating && cur.jail && game.phase==='roll' && (
+        <div className="tp-jail-opts">
+          <div className="tp-jail-info">🔒 Jesteś w areszcie ({cur.jailTurns}/3)</div>
+          <button className="btn" onClick={api.payJail} disabled={cur.money<50}>Zapłać kaucję 50 zł</button>
+          {cur.getOutCards>0 && <button className="btn" onClick={api.useJailCard}>Użyj karty 🎫</button>}
+          <button className="btn btn-primary" onClick={api.rollDice}>Rzuć na dublet</button>
+        </div>
+      )}
+      {!isAnimating && !cur.jail && game.phase==='roll' && (
+        <button className="btn btn-primary btn-big" onClick={api.rollDice}>🎲 RZUĆ KOSTKĄ</button>
+      )}
+      {!isAnimating && game.phase==='buy' && <BuyPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='auction' && <AuctionPrompt game={game} api={api} myIdx={myIdx}/>}
+      {!isAnimating && game.phase==='card' && <CardPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='zabka' && <ZabkaPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='jarmark' && <JarmarkPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='slot' && <SlotPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='stadium' && <StadiumPrompt game={game} api={api}/>}
+      {!isAnimating && game.phase==='casino' && <CasinoPrompt game={game} api={api}/>}
+      {!isAnimating && (game.phase==='roll'||game.phase==='end'||game.phase==='buy') && (
+        <LoanPanel game={game} api={api}/>
+      )}
+      {!isAnimating && game.phase==='end' && (
+        <>
+          {cur.money < 0 && !cur.bankrupt && (
+            <div style={{background:'#fff3f0',border:'2px solid var(--warn)',borderRadius:'6px',padding:'8px 10px',fontSize:'12px',color:'var(--warn)',fontWeight:'600',marginBottom:'8px'}}>
+              💸 Dług: {cur.money} zł!{canRaiseFunds(game,cur) ? ' Sprzedaj domki lub zastaw nieruchomości.' : ' Bankructwo przy końcu tury.'}
+            </div>
+          )}
+          <button className="btn btn-primary btn-big" onClick={api.endTurn}>
+            {cur.money < 0 && canRaiseFunds(game,cur) ? '⚠️ Zakończ turę (masz dług!)' : 'Zakończ turę →'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function BuyPrompt({ game, api }) {
+  const t = BOARD[game.pendingBuy];
+  const cur = game.players[game.cur];
+  const canAfford = cur.money >= t.price;
+  const group = t.group ? GROUP_META[t.group] : null;
+  return (
+    <div className="buy-prompt">
+      <div className="bp-tile" style={{borderTopColor: group?group.color:'#333'}}>
+        <div className="bp-name">{t.name}</div>
+        <div className="bp-price">{t.price} zł</div>
+      </div>
+      <div className="bp-q">Chcesz kupić?</div>
+      <div className="bp-actions">
+        <button className="btn btn-primary" disabled={!canAfford} onClick={api.buyProperty}>Kupuję</button>
+        <button className="btn" onClick={api.skipBuy}>Rezygnuję</button>
+      </div>
+      {!canAfford && <div className="bp-warn">Brakuje {t.price - cur.money} zł</div>}
+    </div>
+  );
+}
+
+function CardPrompt({ game, api }) {
+  const { deck, card } = game.pendingCard;
+  const isChance = deck==='chance';
+  return (
+    <div className={`card-prompt ${isChance?'chance':'chest'}`}>
+      <div className="cp-deck">{isChance ? 'Z ŻYCIA PŁOŃSKA' : 'SKARB MIEJSKI'}</div>
+      <div className="cp-text">{card.text}</div>
+      <button className="btn btn-primary btn-big" onClick={()=>window.__applyCardFn(game, card)}>OK</button>
+    </div>
+  );
+}
+
+function JarmarkPrompt({ game, api }) {
+  const alive = game.players.filter(p => !p.bankrupt);
+  const ANTE = 80;
+  const pot = ANTE * alive.length;
+
+  const [phase, setPhase] = useState('intro'); // 'intro' | 'reveal' | 'done'
+  const [rolls, setRolls] = useState(null);
+  const [shown, setShown] = useState(0);
+
+  function startRolling() {
+    const r = alive.map(p => ({
+      id: p.id, token: p.token, name: p.name,
+      roll: (1+Math.random()*6|0) + (1+Math.random()*6|0),
+    }));
+    setRolls(r);
+    setPhase('reveal');
+    setShown(0);
+    r.forEach((_, i) => {
+      setTimeout(() => {
+        setShown(i + 1);
+        if(i === r.length - 1) setTimeout(() => setPhase('done'), 700);
+      }, i * 550);
+    });
+  }
+
+  const maxRoll  = rolls ? Math.max(...rolls.map(r => r.roll)) : 0;
+  const winners  = rolls ? rolls.filter(r => r.roll === maxRoll) : [];
+  const perWinner = rolls ? Math.floor(pot / winners.length) : 0;
+
+  return (
+    <div className="jarmark-prompt">
+      <div className="jarmark-header">🎪 JARMARK PŁOŃSKI</div>
+      <div className="jarmark-pot">
+        Każdy gracz dorzuca <b>{ANTE} zł</b> do puli<br/>
+        Łączna pula: <b>{pot} zł</b>
+      </div>
+
+      {phase === 'intro' && (
+        <>
+          <div className="jarmark-desc">
+            Rzucacie kośćmi — najwyższy wynik bierze całą pulę!<br/>
+            Remis? Pula dzielona po równo.
+          </div>
+          <button className="btn btn-primary btn-big" onClick={startRolling}>🎲 Zaczynamy!</button>
+        </>
+      )}
+
+      {(phase === 'reveal' || phase === 'done') && rolls && (
+        <div className="jarmark-rolls">
+          {rolls.map((r, i) => {
+            const isWinner = phase === 'done' && r.roll === maxRoll;
+            return (
+              <div key={r.id} className={`jarmark-roll${i < shown ? ' shown' : ''}${isWinner ? ' winner' : ''}`}>
+                <span className="jr-token">{r.token}</span>
+                <span className="jr-name">{r.name}</span>
+                <span className={`jr-dice${isWinner ? ' big' : ''}`}>
+                  {i < shown ? `🎲 ${r.roll}${isWinner ? ' 🏆' : ''}` : '…'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {phase === 'done' && (
+        <>
+          <div className="jarmark-result">
+            {winners.length === 1
+              ? `${winners[0].token} ${winners[0].name} bierze ${pot} zł!`
+              : `Remis! ${winners.map(w => w.name).join(' i ')} dzielą po ${perWinner} zł`
+            }
+          </div>
+          <button className="btn btn-primary btn-big" onClick={() => api.resolveJarmark(rolls, ANTE)}>
+            Odbierz wygraną
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ZabkaPrompt({ game, api }) {
+  const cur = game.players[game.cur];
+  const [subScreen, setSubScreen] = useState('shop'); // 'shop' | 'scratch'
+  const ZDRAPKA_PRICE = 30;
+  const MALPKA_PRICE  = 50;
+
+  if(subScreen === 'scratch'){
+    return <ScratchPrompt game={game} api={api} onBack={()=>setSubScreen('shop')}/>;
+  }
+
+  return (
+    <div className="zabka-prompt">
+      <div className="zabka-header">
+        <span className="zabka-logo">🐸</span>
+        <span className="zabka-title">ŻABKA</span>
+      </div>
+      <div className="zabka-sub">Sklep całodobowy · co kupujesz?</div>
+      <div className="zabka-items">
+
+        <div className={`zabka-item${cur.money < ZDRAPKA_PRICE ? ' cant-afford' : ''}`}
+          onClick={()=>{
+            if(cur.money < ZDRAPKA_PRICE) return;
+            api.payZabka(ZDRAPKA_PRICE, 'zdrapka');
+            setSubScreen('scratch');
+          }}>
+          <span className="zabka-item-icon">🎫</span>
+          <div className="zabka-item-info">
+            <div className="zabka-item-name">Zdrapka</div>
+            <div className="zabka-item-desc">3 takie same = wygrana! Szansa na do 200 zł</div>
+          </div>
+          <div className="zabka-item-price">{ZDRAPKA_PRICE} zł</div>
+        </div>
+
+        <div className={`zabka-item${cur.money < MALPKA_PRICE ? ' cant-afford' : ''}`}
+          onClick={()=>{
+            if(cur.money < MALPKA_PRICE) return;
+            api.buyMalpka(MALPKA_PRICE);
+          }}>
+          <span className="zabka-item-icon">🥃</span>
+          <div className="zabka-item-info">
+            <div className="zabka-item-name">Małpka</div>
+            <div className="zabka-item-desc">🎲 Teleportuje cię na losowe pole planszy!</div>
+          </div>
+          <div className="zabka-item-price">{MALPKA_PRICE} zł</div>
+        </div>
+
+      </div>
+      <button className="btn" style={{width:'100%'}} onClick={api.skipZabka}>Pomiń sklep</button>
+    </div>
+  );
+}
+
+function ScratchPrompt({ game, api, onBack }) {
+  const AMOUNTS = [30, 50, 75, 100, 150, 200];
+
+  const [cards] = useState(() => {
+    const isWinner = Math.random() < 0.28;
+    let values;
+    if(isWinner){
+      const prize = AMOUNTS[Math.random()*AMOUNTS.length|0];
+      const others = AMOUNTS.filter(a=>a!==prize).sort(()=>Math.random()-.5).slice(0,3);
+      values = [prize, prize, prize, ...others];
+    } else {
+      values = [...AMOUNTS].sort(()=>Math.random()-.5);
+    }
+    return values.sort(()=>Math.random()-.5);
+  });
+
+  const [scratched, setScratched] = useState(()=>new Array(6).fill(false));
+  const allDone = scratched.every(Boolean);
+
+  const { win, winners } = useMemo(()=>{
+    if(!allDone) return { win: null, winners: [] };
+    const counts = {};
+    cards.forEach(v => counts[v] = (counts[v]||0)+1);
+    let winVal = 0;
+    for(const [val, cnt] of Object.entries(counts)){
+      if(cnt >= 3){ winVal = parseInt(val); break; }
+    }
+    const w = winVal > 0 ? cards.map((v,i) => v===winVal ? i : -1).filter(i=>i>=0) : [];
+    return { win: winVal, winners: w };
+  }, [allDone]);
+
+  function scratch(i){
+    if(scratched[i] || allDone) return;
+    setScratched(prev=>{ const n=[...prev]; n[i]=true; return n; });
+  }
+
+  return (
+    <div className="scratch-prompt">
+      <div className="scratch-title">🎫 ZDRAPKA</div>
+      <div className="scratch-sub">Kliknij pola · 3 takie same = wygrana!</div>
+      <div className="scratch-grid">
+        {cards.map((val, i) => (
+          <div key={i}
+            className={`scratch-cell${scratched[i]?' scratched':''}${allDone&&winners.includes(i)?' winner':''}`}
+            onClick={()=>scratch(i)}>
+            <div className={`scratch-value${allDone&&winners.includes(i)?' match':''}`}>{val} zł</div>
+            <div className="scratch-cover">🪙</div>
+          </div>
+        ))}
+      </div>
+      {allDone && (
+        <div className={`scratch-result ${win>0?'win':'lose'}`}>
+          {win>0 ? `🎉 Wygrałeś ${win} zł!` : '😔 Może następnym razem...'}
+        </div>
+      )}
+      {!allDone && (
+        <button className="btn btn-big" style={{width:'100%',marginTop:'4px'}}
+          onClick={()=>setScratched(new Array(6).fill(true))}>
+          Odkryj wszystkie
+        </button>
+      )}
+      {allDone && (
+        <button className="btn btn-primary btn-big" onClick={()=>api.resolveScratch(win)}>
+          {win>0 ? '🎉 Odbierz wygraną!' : 'Kontynuuj'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function StadiumPrompt({ game, api }) {
+  const cur = game.players[game.cur];
+  const canvasRef = useRef(null);
+  const animRef   = useRef(null);
+  const DPR = Math.min(window.devicePixelRatio||1,2);
+  const W=260, H=148;
+  // Goal geometry
+  const GL=22, GR=238, GT=6, GB=70;
+  const ZW=(GR-GL)/3; // zone width ≈ 72
+
+  const ballXR=useRef(W/2), ballYR=useRef(H-12);
+  const keepXR=useRef(W/2);
+
+  const [bet, setBet]         = useState(100);
+  const [phase, setPhase]     = useState('bet'); // bet|aim|shooting|result
+  const [result, setResult]   = useState(null);
+
+  function zoneCenter(dir){
+    if(dir==='left')   return GL+ZW*0.5;
+    if(dir==='center') return GL+ZW*1.5;
+    return GL+ZW*2.5;
+  }
+
+  function drawScene(bx, by, kx, shootDir, kDir, ph){
+    const cv=canvasRef.current; if(!cv) return;
+    const ctx=cv.getContext('2d');
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    // Murawa
+    ctx.fillStyle='#2d8b2d'; ctx.fillRect(0,0,W,H);
+    // Linie boiska
+    ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1;
+    for(let y=GT+80;y<H;y+=20){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    // Punkt karny
+    ctx.fillStyle='rgba(255,255,255,.3)';
+    ctx.beginPath(); ctx.arc(W/2,H-12,3,0,2*Math.PI); ctx.fill();
+    // Łuk pola karnego
+    ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(W/2,H+30,65,Math.PI,0); ctx.stroke();
+
+    // Siatka bramki (tło)
+    ctx.fillStyle='rgba(0,0,0,.25)';
+    ctx.fillRect(GL+2,GT+2,GR-GL,GB-GT);
+    ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=0.7;
+    for(let x=GL;x<=GR;x+=11){ ctx.beginPath(); ctx.moveTo(x,GT); ctx.lineTo(x,GB); ctx.stroke(); }
+    for(let y=GT;y<=GB;y+=11){ ctx.beginPath(); ctx.moveTo(GL,y); ctx.lineTo(GR,y); ctx.stroke(); }
+
+    // Podświetlenie stref
+    if(ph==='aim'||ph==='shooting'||ph==='result'){
+      ['left','center','right'].forEach((d,i)=>{
+        const zx=GL+i*ZW;
+        if(shootDir===d){ ctx.fillStyle='rgba(255,194,31,.28)'; ctx.fillRect(zx,GT,ZW,GB-GT); }
+        if(kDir===d && ph==='result'){ ctx.fillStyle='rgba(31,78,158,.28)'; ctx.fillRect(zx,GT,ZW,GB-GT); }
+      });
+    }
+
+    // Rama bramki
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3.5;
+    ctx.strokeRect(GL,GT,GR-GL,GB-GT);
+    // Linie stref
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
+    [1,2].forEach(n=>{ ctx.beginPath(); ctx.moveTo(GL+n*ZW,GT); ctx.lineTo(GL+n*ZW,GB); ctx.stroke(); });
+
+    // Etykiety stref (aim)
+    if(ph==='aim'){
+      ctx.font='bold 9px "Space Grotesk",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(255,255,255,.75)';
+      ['LEWY','ŚRODEK','PRAWY'].forEach((lbl,i)=>{ ctx.fillText(lbl,GL+i*ZW+ZW/2,(GT+GB)/2); });
+    }
+
+    // Bramkarz — body
+    const kw=30, kh=42, headR=9;
+    ctx.fillStyle='#1f4e9e';
+    ctx.fillRect(kx-kw/2, GT+headR*2+2, kw, kh);
+    // Nogi
+    ctx.fillStyle='#0e2e60';
+    ctx.fillRect(kx-kw/2,   GT+headR*2+2+kh-8, kw/2-1, 8);
+    ctx.fillRect(kx+1,      GT+headR*2+2+kh-8, kw/2-1, 8);
+    // Głowa
+    ctx.fillStyle='#e8a87c';
+    ctx.beginPath(); ctx.arc(kx, GT+headR+1, headR, 0, 2*Math.PI); ctx.fill();
+    // Rękawice
+    ctx.fillStyle='#ffc21f';
+    ctx.beginPath(); ctx.arc(kx-kw/2-5, GT+headR*2+12, 7, 0, 2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(kx+kw/2+5, GT+headR*2+12, 7, 0, 2*Math.PI); ctx.fill();
+
+    // Piłka
+    ctx.beginPath(); ctx.arc(bx,by,10,0,2*Math.PI);
+    ctx.fillStyle='#fff'; ctx.fill();
+    ctx.strokeStyle='#222'; ctx.lineWidth=1.5; ctx.stroke();
+    // wzór piłki
+    ctx.fillStyle='#111';
+    const pts=[0,-6,5.2,-3,5.2,3,0,6,-5.2,3,-5.2,-3];
+    ctx.save(); ctx.translate(bx,by);
+    ctx.beginPath();
+    for(let i=0;i<pts.length;i+=2) i===0?ctx.moveTo(pts[i],pts[i+1]):ctx.lineTo(pts[i],pts[i+1]);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+
+    // Overlay wynik
+    if(ph==='result'){
+      const goal=(shootDir!==kDir);
+      ctx.fillStyle='rgba(0,0,0,.58)'; ctx.fillRect(W/2-70,H/2-20,140,40);
+      ctx.font='bold 20px "Space Grotesk",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=goal?'#ffc21f':'#ff6b6b';
+      ctx.fillText(goal?'⚽ GOL!':'🧤 Obroniony!',W/2,H/2);
+    }
+  }
+
+  useEffect(()=>{
+    const cv=canvasRef.current; if(!cv) return;
+    cv.width=W*DPR; cv.height=H*DPR;
+    drawScene(W/2,H-12,W/2,null,null,'bet');
+    return ()=>{ if(animRef.current) cancelAnimationFrame(animRef.current); };
+  },[]);
+
+  useEffect(()=>{
+    if(phase==='aim'){
+      ballXR.current=W/2; ballYR.current=H-12; keepXR.current=W/2;
+      drawScene(W/2,H-12,W/2,null,null,'aim');
+    }
+  },[phase]);
+
+  function shoot(dir){
+    const dirs=['left','center','right'];
+    const kd=dirs[Math.random()*3|0];
+    setPhase('shooting');
+
+    const tbx=zoneCenter(dir), tby=GT+22+(dir==='center'?-6:0);
+    const tkx=zoneCenter(kd);
+    const fbx=W/2, fby=H-12, fkx=W/2;
+    const DUR=1000; let startT=null;
+
+    function easeOut(t){return 1-(1-t)**3;}
+    function easeInOut(t){return t<.5?2*t*t:1-((-2*t+2)**2)/2;}
+
+    function frame(now){
+      if(!startT) startT=now;
+      const t=Math.min((now-startT)/DUR,1);
+      ballXR.current=fbx+(tbx-fbx)*easeInOut(Math.min(t*1.3,1));
+      ballYR.current=fby+(tby-fby)*easeInOut(Math.min(t*1.3,1));
+      const kt=Math.max(0,(t-.12)/.88);
+      keepXR.current=fkx+(tkx-fkx)*easeOut(kt);
+      drawScene(ballXR.current,ballYR.current,keepXR.current,dir,t>=1?kd:null,t>=1?'result':'shooting');
+      if(t<1){ animRef.current=requestAnimationFrame(frame); }
+      else {
+        const goal=dir!==kd;
+        const net=goal?bet:-bet;
+        setResult({goal,net});
+        setPhase('result');
+      }
+    }
+    animRef.current=requestAnimationFrame(frame);
+  }
+
+  return (
+    <div className="stadium-prompt">
+      <div className="stadium-title">⚽ STADION PŁOŃSK</div>
+      <div className="stadium-sub">Strzel karnego — wygraj premię</div>
+      <div className="stadium-canvas-wrap">
+        <canvas ref={canvasRef} style={{width:W+'px',height:H+'px',borderRadius:'6px',border:'2px solid var(--ink)'}}/>
+      </div>
+
+      {phase==='bet' && (
+        <>
+          <div className="bj-bet-row">
+            <span>Stawka:</span>
+            {[50,100,200].map(b=>(
+              <button key={b} className={`cp${bet===b?' on':''}`} onClick={()=>setBet(b)} disabled={cur.money<b}>{b} zł</button>
+            ))}
+          </div>
+          <div className="stadium-hint">Trafisz: +{bet} zł &nbsp;|&nbsp; Bramkarz obroni: −{bet} zł</div>
+          <button className="btn btn-primary btn-big" onClick={()=>setPhase('aim')} disabled={cur.money<bet}>
+            {cur.money>=bet?`⚽ Podejdź do piłki`:'Za mało środków'}
+          </button>
+          <button className="btn btn-close" onClick={api.skipStadium}>Pomiń stadion</button>
+        </>
+      )}
+
+      {phase==='aim' && (
+        <>
+          <div className="stadium-hint">Wybierz kierunek strzału — bramkarz nie patrzy!</div>
+          <div className="stadium-zones">
+            <button className="sz-btn" onClick={()=>shoot('left')}>⬅ LEWY</button>
+            <button className="sz-btn" onClick={()=>shoot('center')}>🎯 ŚRODEK</button>
+            <button className="sz-btn" onClick={()=>shoot('right')}>PRAWY ➡</button>
+          </div>
+        </>
+      )}
+
+      {phase==='shooting' && (
+        <div style={{textAlign:'center',padding:'10px 0',fontSize:'14px',color:'var(--muted)',letterSpacing:'.05em'}}>⚽ Piłka leci…</div>
+      )}
+
+      {phase==='result' && result && (
+        <>
+          <div className={`stadium-result ${result.goal?'goal':'saved'}`}>
+            {result.goal?`⚽ GOL! Wygrywasz +${result.net} zł!`:`🧤 Obroniony! Tracisz ${bet} zł`}
+          </div>
+          <button className="btn btn-primary btn-big" onClick={()=>api.resolveStadium(result.net)}>Kontynuuj →</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SlotPrompt({ game, api, onBack }) {
+  const cur = game.players[game.cur];
+  const SYMBOLS = ['🥛','🎹','🚌','🥖','⚽','💎','🏆'];
+  const [bet, setBet] = useState(50);
+  const [reels, setReels] = useState(['🎰','🎰','🎰']);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const intervalRef = useRef(null);
+
+  useEffect(() => () => clearInterval(intervalRef.current), []);
+
+  function spin() {
+    if(spinning || cur.money < bet) return;
+    setSpinning(true); setResult(null);
+    let count = 0;
+    intervalRef.current = setInterval(() => {
+      setReels([
+        SYMBOLS[Math.random()*SYMBOLS.length|0],
+        SYMBOLS[Math.random()*SYMBOLS.length|0],
+        SYMBOLS[Math.random()*SYMBOLS.length|0],
+      ]);
+      count++;
+      if(count >= 18){
+        clearInterval(intervalRef.current);
+        const r = [
+          SYMBOLS[Math.random()*SYMBOLS.length|0],
+          SYMBOLS[Math.random()*SYMBOLS.length|0],
+          SYMBOLS[Math.random()*SYMBOLS.length|0],
+        ];
+        setReels(r); setSpinning(false);
+        let win = 0;
+        if(r[0]===r[1] && r[1]===r[2]){
+          if(r[0]==='🏆') win = bet*10;
+          else if(r[0]==='💎') win = bet*5;
+          else win = bet*3;
+        } else if(r[0]===r[1] || r[1]===r[2] || r[0]===r[2]){
+          win = Math.floor(bet*1.5);
+        }
+        setResult({win});
+      }
+    }, 80);
+  }
+
+  return (
+    <div className="slot-prompt">
+      <div className="slot-title">🎰 AUTOMAT</div>
+      <div className="slot-odds">
+        2 takie same = 1.5× stawki<br/>
+        3 takie same = 3× · 💎💎💎 = 5× · 🏆🏆🏆 = JACKPOT 10×
+      </div>
+      <div className="slot-machine">
+        {reels.map((r,i) => (
+          <div key={i} className={`reel${spinning?' spinning':''}`}>{r}</div>
+        ))}
+      </div>
+      {result && (
+        <div className={`slot-result ${result.win>0?'win':'lose'}`}>
+          {result.win>0 ? `🎉 Wygrałeś ${result.win} zł!` : '😔 Nic tym razem...'}
+        </div>
+      )}
+      {!result && (
+        <div className="slot-bet">
+          <span>Stawka:</span>
+          {[50,100,200].map(b => (
+            <button key={b} className={`cp ${bet===b?'on':''}`}
+              onClick={()=>setBet(b)} disabled={spinning}>{b} zł</button>
+          ))}
+        </div>
+      )}
+      {!result && (
+        <button className="btn btn-primary btn-big" onClick={spin}
+          disabled={spinning || cur.money < bet}>
+          {spinning ? '🎰 Kręci się...' : `🎲 ZAKRĘĆ! (${bet} zł)`}
+        </button>
+      )}
+      {!result && cur.money < bet && (
+        <div className="bp-warn">Za mało kasy na tę stawkę!</div>
+      )}
+      {result && (
+        <button className="btn btn-primary btn-big"
+          onClick={onBack
+            ? ()=>api.resolveCasino(result.win - bet)
+            : ()=>api.resolveSlot(bet, result.win)}>
+          Kontynuuj
+        </button>
+      )}
+      {onBack ? (
+        <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
+          <button className="btn btn-close" style={{flex:1}} onClick={onBack} disabled={spinning}>← Zmień grę</button>
+          <button className="btn btn-close" style={{flex:1}} onClick={api.skipCasino} disabled={spinning}>Pomiń kasyno</button>
+        </div>
+      ) : (
+        <button className="btn btn-close" onClick={api.skipSlot} disabled={spinning}>
+          Pomiń automat
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AuctionPrompt({ game, api, myIdx }) {
+  const auction = game.pendingAuction;
+  const tile    = BOARD[auction.tileIdx];
+  const group   = tile.group ? GROUP_META[tile.group] : null;
+  const excludeId = auction.excludePlayerId;
+
+  // Eligible = non-bankrupt, non-excluded (or only tiebreakers in tiebreak round)
+  const tieIds  = auction.tiebreakIds || null;
+  const eligible = tieIds
+    ? game.players.filter(p => tieIds.includes(p.id))
+    : game.players.filter(p => !p.bankrupt && p.id !== excludeId);
+  const bids     = auction.bids || {};
+  const allBidsIn = eligible.every(p => bids[p.id] != null);
+
+  // Am I eligible to bid?
+  const iAmExcluded = myIdx === excludeId;
+  const iAmEligible = !iAmExcluded && myIdx != null && !game.players[myIdx]?.bankrupt;
+  const iAlreadyBid = bids[myIdx] != null;
+
+  const [inputVal, setInputVal] = useState('');
+
+  function submitMyBid() {
+    const amount = Math.max(0, parseInt(inputVal) || 0);
+    const me = game.players[myIdx];
+    const capped = Math.min(amount, me.money);
+    api.submitBid(myIdx, capped);
+    setInputVal('');
+  }
+
+  // Compute result when all bids in
+  const maxBid    = allBidsIn ? Math.max(0, ...eligible.map(p => bids[p.id] || 0)) : 0;
+  const winners   = allBidsIn ? eligible.filter(p => (bids[p.id] || 0) === maxBid) : [];
+  const allPass   = allBidsIn && maxBid === 0;
+  const isTie     = allBidsIn && winners.length > 1;
+  const soleWinner= allBidsIn && winners.length === 1 ? winners[0].id : null;
+  const pendingCount = eligible.length - Object.keys(bids).length;
+
+  return (
+    <div className="auction-prompt">
+      <div className="auction-title">🏷️ AUKCJA</div>
+      <div className="auction-tile" style={{borderTopColor: group ? group.color : '#333'}}>
+        <div style={{fontWeight:700,fontFamily:'var(--font-display)'}}>{tile.name}</div>
+        {tile.price && <div style={{fontSize:13,color:'var(--muted)'}}>cena katalogowa: {tile.price} zł</div>}
+      </div>
+
+      {/* Collect phase */}
+      {!allBidsIn && (
+        <>
+          {/* My bid input */}
+          {iAmEligible && !iAlreadyBid && (
+            <div className="auction-blind">
+              <div className="auction-who" style={{color:TOKEN_COLOR(myIdx)}}>
+                {game.players[myIdx].token} {game.players[myIdx].name} — wpisz swoją ofertę
+              </div>
+              <div className="auction-balance">Saldo: {game.players[myIdx].money} zł</div>
+              <input className="auction-input" type="number" min="0"
+                max={game.players[myIdx].money}
+                value={inputVal}
+                onChange={e=>setInputVal(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&submitMyBid()}
+                autoFocus placeholder="0"/>
+              <button className="btn btn-primary btn-big" style={{marginTop:8}} onClick={submitMyBid}>
+                Zatwierdź ofertę →
+              </button>
+            </div>
+          )}
+          {iAmEligible && iAlreadyBid && (
+            <div style={{padding:'10px 14px',background:'#d4f5d4',borderRadius:'8px',fontWeight:700,color:'var(--good)',marginBottom:8}}>
+              ✅ Twoja oferta złożona! Czekam na pozostałych…
+            </div>
+          )}
+          {iAmExcluded && (
+            <div className="mp-wait">
+              <div className="mp-wait-label">Zrezygnowałeś z zakupu</div>
+              <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Czekaj na wynik aukcji</div>
+            </div>
+          )}
+          {/* Progress */}
+          <div className="auction-reveal" style={{marginTop:8}}>
+            {eligible.map(p=>(
+              <div key={p.id} className="auction-reveal-row">
+                <span>{p.token} {p.name}</span>
+                <span style={{color: bids[p.id]!=null ? 'var(--good)' : 'var(--muted)'}}>
+                  {bids[p.id]!=null ? '✅ złożona' : '⏳ czeka…'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="auction-round">Oczekuję na {pendingCount} {pendingCount===1?'gracza':'graczy'}…</div>
+        </>
+      )}
+
+      {/* Reveal phase */}
+      {allBidsIn && (
+        <>
+          <div className="auction-reveal">
+            {eligible.map(p => {
+              const bid = bids[p.id] || 0;
+              const isW = winners.some(w => w.id === p.id);
+              return (
+                <div key={p.id} className={`auction-reveal-row ${isW && !isTie?'winner-row':''} ${isW&&isTie?'tie-row':''}`}>
+                  <span>{p.token} {p.name}</span>
+                  <span>{bid} zł</span>
+                </div>
+              );
+            })}
+          </div>
+          {allPass && (
+            <>
+              <div style={{fontSize:13,color:'var(--muted)',marginBottom:10}}>Nikt nie złożył oferty — wraca do banku.</div>
+              <button className="btn btn-primary btn-big" onClick={api.skipAuction}>Kontynuuj</button>
+            </>
+          )}
+          {!allPass && isTie && (
+            <>
+              <div className="auction-tie-info">⚖️ Remis przy {maxBid} zł! Dogrywka: {winners.map(w=>w.name).join(' i ')}</div>
+              <button className="btn btn-primary btn-big" onClick={()=>api.resetAuctionBids(winners.map(w=>w.id))}>Zagraj dogrywkę →</button>
+            </>
+          )}
+          {!allPass && soleWinner != null && (
+            <>
+              <div style={{padding:'10px',background:'#d4f5d4',border:'2px solid var(--good)',borderRadius:'6px',fontWeight:700,marginBottom:10,color:'var(--good)'}}>
+                🎉 Wygrywa {game.players[soleWinner].token} {game.players[soleWinner].name} za {maxBid} zł!
+              </div>
+              <button className="btn btn-primary btn-big"
+                onClick={()=>api.resolveAuction(soleWinner, maxBid)}>
+                Przejmij nieruchomość
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function BlackjackPrompt({ game, api, onBack }) {
+  const cur = game.players[game.cur];
+  const SUITS = ['♠','♥','♦','♣'];
+  const VALUES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+  function makeDeck() {
+    const d = [];
+    SUITS.forEach(s => VALUES.forEach(v => d.push({v,s})));
+    for(let i=d.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [d[i],d[j]]=[d[j],d[i]]; }
+    return d;
+  }
+  function cardVal(c) {
+    if(c.v==='A') return 11;
+    if('JQK'.includes(c.v)) return 10;
+    return parseInt(c.v);
+  }
+  function handScore(hand) {
+    let tot = hand.reduce((s,c)=>s+cardVal(c),0);
+    let aces = hand.filter(c=>c.v==='A').length;
+    while(tot>21 && aces>0){ tot-=10; aces--; }
+    return tot;
+  }
+
+  const deckRef = useRef(null);
+  const [playerHand, setPlayerHand] = useState([]);
+  const [dealerHand, setDealerHand] = useState([]);
+  const [bet, setBet] = useState(50);
+  const [bjPhase, setBjPhase] = useState('bet'); // bet | playing | result
+  const [dealerRevealed, setDealerRevealed] = useState(false);
+  const [result, setResult] = useState(null); // {type, net}
+
+  function deal() {
+    const d = makeDeck();
+    const ph = [d.pop(), d.pop()];
+    const dh = [d.pop(), d.pop()];
+    deckRef.current = d;
+    setPlayerHand(ph); setDealerHand(dh);
+    setDealerRevealed(false); setResult(null);
+    const ps = handScore(ph);
+    const ds = handScore(dh);
+    if(ps === 21) {
+      setDealerRevealed(true);
+      if(ds === 21) setResult({type:'push', net:0});
+      else setResult({type:'blackjack', net:Math.floor(bet*1.5)});
+      setBjPhase('result');
+    } else {
+      setBjPhase('playing');
+    }
+  }
+
+  function doStand(ph) {
+    let dh = [...dealerHand];
+    while(handScore(dh) < 17) dh.push(deckRef.current.pop());
+    setDealerHand(dh);
+    setDealerRevealed(true);
+    const ps = handScore(ph);
+    const ds = handScore(dh);
+    let type, net;
+    if(ds>21 || ps>ds){ type='win'; net=bet; }
+    else if(ps===ds){ type='push'; net=0; }
+    else { type='lose'; net=-bet; }
+    setResult({type, net});
+    setBjPhase('result');
+  }
+
+  function hit() {
+    const newCard = deckRef.current.pop();
+    const nh = [...playerHand, newCard];
+    setPlayerHand(nh);
+    const s = handScore(nh);
+    if(s > 21){ setDealerRevealed(true); setResult({type:'lose',net:-bet}); setBjPhase('result'); }
+    else if(s === 21) doStand(nh);
+  }
+
+  function stand() { doStand(playerHand); }
+
+  const playerScore = handScore(playerHand);
+  const dealerScore = handScore(dealerHand);
+
+  function BJCard({ card, hidden }) {
+    if(hidden) return <div className="bj-card bj-card-back">🂠</div>;
+    const isRed = card.s==='♥' || card.s==='♦';
+    return (
+      <div className={`bj-card${isRed?' red':''}`}>
+        <div className="bj-cv">{card.v}</div>
+        <div className="bj-cs">{card.s}</div>
+      </div>
+    );
+  }
+
+  const resultMsg = result ? {
+    blackjack: `🃏 BLACKJACK! +${result.net} zł`,
+    win: `🎉 Wygrałeś! +${result.net} zł`,
+    lose: `😔 Przegrałeś ${bet} zł`,
+    push: `🤝 Remis — pieniądze wróciły`,
+  }[result.type] : '';
+
+  const resultClass = result ? (result.type==='push' ? 'push' : result.net >= 0 ? 'win' : 'lose') : '';
+
+  return (
+    <div className="bj-prompt">
+      <div className="bj-title">🃏 KASYNO — Blackjack</div>
+
+      {bjPhase === 'bet' && (
+        <>
+          <div className="bj-bet-row">
+            <span>Stawka:</span>
+            {[50,100,200].map(b=>(
+              <button key={b} className={`cp${bet===b?' on':''}`}
+                onClick={()=>setBet(b)} disabled={cur.money<b}>{b} zł</button>
+            ))}
+          </div>
+          <div className="bj-table">
+            <div className="bj-section">
+              <div className="bj-label">Krupier</div>
+              <div className="bj-hand"><div className="bj-card bj-card-back">🂠</div></div>
+            </div>
+            <hr className="bj-divider"/>
+            <div className="bj-section">
+              <div className="bj-label">Ty</div>
+              <div className="bj-hand"><div className="bj-card bj-card-back">🂠</div></div>
+            </div>
+          </div>
+          <button className="btn btn-primary btn-big" onClick={deal}
+            disabled={cur.money < bet}>
+            {cur.money >= bet ? `Zagraj (${bet} zł)` : 'Za mało środków'}
+          </button>
+          <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
+            {onBack && <button className="btn btn-close" style={{flex:1}} onClick={onBack}>← Zmień grę</button>}
+            <button className="btn btn-close" style={{flex:1}} onClick={api.skipCasino}>Pomiń kasyno</button>
+          </div>
+        </>
+      )}
+
+      {bjPhase !== 'bet' && (
+        <>
+          <div className="bj-bet-row"><span>Stawka:</span><b>{bet} zł</b></div>
+          <div className="bj-table">
+            <div className="bj-section">
+              <div className="bj-label">Krupier {dealerRevealed ? `(${dealerScore})` : ''}</div>
+              <div className="bj-hand">
+                {dealerHand.map((c,i)=>(
+                  <BJCard key={i} card={c} hidden={!dealerRevealed && i===1}/>
+                ))}
+              </div>
+            </div>
+            <hr className="bj-divider"/>
+            <div className="bj-section">
+              <div className="bj-label">Ty ({playerScore})</div>
+              <div className="bj-hand">
+                {playerHand.map((c,i)=>(<BJCard key={i} card={c} hidden={false}/>))}
+              </div>
+            </div>
+          </div>
+          {bjPhase === 'playing' && (
+            <div className="bj-actions">
+              <button className="btn btn-primary" onClick={hit}>Dobierz 🃏</button>
+              <button className="btn" onClick={stand}>Stój ✋</button>
+            </div>
+          )}
+          {bjPhase === 'result' && result && (
+            <>
+              <div className={`bj-result ${resultClass}`}>{resultMsg}</div>
+              <button className="btn btn-primary btn-big"
+                onClick={()=>api.resolveCasino(result.net)}>
+                Kontynuuj
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CasinoPrompt({ game, api }) {
+  const [subGame, setSubGame] = React.useState('select');
+  if(subGame==='bj')   return <BlackjackPrompt game={game} api={api} onBack={()=>setSubGame('select')}/>;
+  if(subGame==='rl')   return <RoulettePrompt  game={game} api={api} onBack={()=>setSubGame('select')}/>;
+  if(subGame==='slot') return <SlotPrompt      game={game} api={api} onBack={()=>setSubGame('select')}/>;
+  return (
+    <div className="casino-lobby">
+      <div className="casino-lobby-title">🃏 KASYNO PŁOŃSK</div>
+      <div className="casino-game-grid" style={{flexWrap:'wrap'}}>
+        <button className="casino-game-btn" style={{padding:'12px 4px'}} onClick={()=>setSubGame('bj')}>
+          <span className="casino-game-icon">🃏</span>
+          <span className="casino-game-name">BLACKJACK</span>
+        </button>
+        <button className="casino-game-btn" style={{padding:'12px 4px'}} onClick={()=>setSubGame('rl')}>
+          <span className="casino-game-icon">🎡</span>
+          <span className="casino-game-name">RULETKA</span>
+        </button>
+        <button className="casino-game-btn" style={{padding:'12px 4px'}} onClick={()=>setSubGame('slot')}>
+          <span className="casino-game-icon">🎰</span>
+          <span className="casino-game-name">AUTOMAT</span>
+        </button>
+      </div>
+      <button className="btn btn-close" onClick={api.skipCasino}>Pomiń kasyno</button>
+    </div>
+  );
+}
+
+function RoulettePrompt({ game, api, onBack }) {
+  const cur = game.players[game.cur];
+  const RED_NUMS_RL = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  const WO = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+  const BET_DEFS = {
+    red:   {label:'🔴 Rouge',    pays:1,  test:n=>n>0&&RED_NUMS_RL.has(n)},
+    black: {label:'⚫ Noir',      pays:1,  test:n=>n>0&&!RED_NUMS_RL.has(n)},
+    zero:  {label:'🟢 Zéro',      pays:35, test:n=>n===0},
+    odd:   {label:'Nieparzyste', pays:1,  test:n=>n>0&&n%2===1},
+    even:  {label:'Parzyste',    pays:1,  test:n=>n>0&&n%2===0},
+    low:   {label:'1–18',        pays:1,  test:n=>n>=1&&n<=18},
+    high:  {label:'19–36',       pays:1,  test:n=>n>=19&&n<=36},
+    doz1:  {label:'1–12',        pays:2,  test:n=>n>=1&&n<=12},
+    doz2:  {label:'13–24',       pays:2,  test:n=>n>=13&&n<=24},
+    doz3:  {label:'25–36',       pays:2,  test:n=>n>=25&&n<=36},
+    straight:{label:'Numer',     pays:35, test:(n,sn)=>n===sn},
+  };
+  const CX=120,CY=120,WR=106,NR=94,CR=82,BR=114,HR=11;
+  const DPR = Math.min(window.devicePixelRatio||1,2);
+
+  const canvasRef = useRef(null);
+  const wAngle = useRef(0);
+  const bAngle = useRef(0);
+  const animId = useRef(null);
+  const isSpinning = useRef(false);
+  const [bet, setBet] = useState(50);
+  const [betType, setBetType] = useState(null);
+  const [straightNum, setStraightNum] = useState(7);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  function mod360(x){ return ((x%360)+360)%360; }
+
+  function draw(wa, ba, ball) {
+    const cv = canvasRef.current; if(!cv) return;
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.clearRect(0,0,240,240);
+    const n=37, arc=(2*Math.PI)/n;
+    const rot=(wa-90)*Math.PI/180;
+    WO.forEach((num,i)=>{
+      const a0=rot+i*arc, a1=a0+arc;
+      ctx.beginPath(); ctx.moveTo(CX,CY); ctx.arc(CX,CY,CR,a0,a1); ctx.closePath();
+      ctx.fillStyle=num===0?'#1a5c2a':RED_NUMS_RL.has(num)?'#7a1414':'#101010'; ctx.fill();
+      ctx.beginPath(); ctx.arc(CX,CY,WR,a0,a1); ctx.arc(CX,CY,CR,a1,a0,true); ctx.closePath();
+      ctx.fillStyle=num===0?'#2e8b4a':RED_NUMS_RL.has(num)?'#c0392b':'#1e1e1e'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(CX+CR*Math.cos(a0),CY+CR*Math.sin(a0));
+      ctx.lineTo(CX+WR*Math.cos(a0),CY+WR*Math.sin(a0));
+      ctx.strokeStyle='rgba(200,150,12,.4)'; ctx.lineWidth=.6; ctx.stroke();
+      const midA=a0+arc/2;
+      const tx=CX+NR*Math.cos(midA), ty=CY+NR*Math.sin(midA);
+      ctx.save(); ctx.translate(tx,ty); ctx.rotate(midA+Math.PI/2);
+      ctx.fillStyle='#fff';
+      ctx.font='bold '+(num>=10?'7.5':'9')+'px \'Space Grotesk\',sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(num,0,0); ctx.restore();
+    });
+    ctx.beginPath(); ctx.arc(CX,CY,WR+1,0,2*Math.PI); ctx.strokeStyle='#c8960c'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,CR,0,2*Math.PI); ctx.strokeStyle='rgba(200,150,12,.25)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,BR,0,2*Math.PI); ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=9; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX,CY,HR,0,2*Math.PI);
+    const g=ctx.createRadialGradient(CX-2,CY-2,2,CX,CY,HR);
+    g.addColorStop(0,'#ffe566'); g.addColorStop(1,'#a07800'); ctx.fillStyle=g; ctx.fill();
+    ctx.beginPath(); ctx.arc(CX,CY,HR-2,0,2*Math.PI); ctx.fillStyle='#0d2b0d'; ctx.fill();
+    if(ball){
+      const bRad=(ba-90)*Math.PI/180;
+      const bx=CX+BR*Math.cos(bRad), by=CY+BR*Math.sin(bRad);
+      ctx.beginPath(); ctx.arc(bx,by,5,0,2*Math.PI);
+      const bg=ctx.createRadialGradient(bx-1.5,by-1.5,1,bx,by,5);
+      bg.addColorStop(0,'#fff'); bg.addColorStop(1,'#aaa'); ctx.fillStyle=bg; ctx.fill();
+      ctx.strokeStyle='#888'; ctx.lineWidth=1; ctx.stroke();
+    }
+  }
+
+  useEffect(()=>{
+    const cv = canvasRef.current; if(!cv) return;
+    cv.width=240*DPR; cv.height=240*DPR;
+    draw(wAngle.current, bAngle.current, false);
+    return ()=>{ if(animId.current) cancelAnimationFrame(animId.current); };
+  }, []);
+
+  function spin(){
+    if(!betType||cur.money<bet||isSpinning.current) return;
+    isSpinning.current=true; setSpinning(true); setResult(null);
+    const sn=straightNum, bt=betType;
+    const winNum=WO[Math.random()*37|0];
+    const slotDeg=360/37, winIdx=WO.indexOf(winNum);
+    const curMod=mod360(wAngle.current);
+    const targetMod=mod360(-(winIdx+0.5)*slotDeg);
+    let diff=(targetMod-curMod+360)%360; if(diff<60) diff+=360;
+    const fromW=wAngle.current, toW=fromW+5*360+diff;
+    const ballMod=mod360(bAngle.current);
+    const fromB=bAngle.current, toB=fromB-(8*360+ballMod);
+    const DUR=5800; let startT=null;
+    function ease(t){return 1-Math.pow(1-t,4.5);}
+    function frame(now){
+      if(!startT) startT=now;
+      const t=Math.min((now-startT)/DUR,1), e=ease(t);
+      wAngle.current=fromW+(toW-fromW)*e;
+      bAngle.current=fromB+(toB-fromB)*e;
+      draw(wAngle.current,bAngle.current,true);
+      if(t<1){ animId.current=requestAnimationFrame(frame); }
+      else {
+        wAngle.current=toW; bAngle.current=toB;
+        draw(wAngle.current,bAngle.current,true);
+        const bd=BET_DEFS[bt];
+        const won=bt==='straight'?bd.test(winNum,sn):bd.test(winNum);
+        const net=won?bet*bd.pays:-bet;
+        setResult({num:winNum,won,net});
+        isSpinning.current=false; setSpinning(false);
+      }
+    }
+    animId.current=requestAnimationFrame(frame);
+  }
+
+  const betLabel=betType?(betType==='straight'?`Numer ${straightNum} · 35:1`:`${BET_DEFS[betType].label} · ${BET_DEFS[betType].pays}:1`):null;
+
+  return (
+    <div className="rl-prompt">
+      <button className="btn" style={{fontSize:'11px',padding:'4px 10px',marginBottom:'8px'}} onClick={onBack}>← Zmień grę</button>
+      <div className="rl-canvas-wrap-m">
+        <canvas ref={canvasRef} style={{width:'240px',height:'240px',borderRadius:'50%'}}/>
+      </div>
+      <div style={{marginBottom:'8px'}}>
+        <div style={{fontSize:'10px',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'5px'}}>Stawka</div>
+        <div style={{display:'flex',gap:'6px',justifyContent:'center'}}>
+          {[50,100,200].map(b=>(
+            <button key={b} className={`cp${bet===b?' on':''}`} onClick={()=>setBet(b)} disabled={spinning||cur.money<b}>{b} zł</button>
+          ))}
+        </div>
+      </div>
+      <div className="rl-bets-m">
+        <div className="rl-bg-label">Kolor</div>
+        <div className="rl-row-m">
+          {[{k:'red',label:'🔴 Rouge',cls:'rl-rouge'},{k:'black',label:'⚫ Noir',cls:'rl-noir'},{k:'zero',label:'🟢 Zéro',cls:'rl-zero'}].map(({k,label,cls})=>(
+            <button key={k} className={`rl-btn-m ${cls} ${betType===k?'rl-m-on':''}`} disabled={spinning} onClick={()=>setBetType(k)}>{label}</button>
+          ))}
+        </div>
+        <div className="rl-bg-label" style={{marginTop:'5px'}}>Szanse</div>
+        <div className="rl-row-m">
+          {[{k:'odd',label:'Nieparzyste'},{k:'even',label:'Parzyste'},{k:'low',label:'1–18'},{k:'high',label:'19–36'}].map(({k,label})=>(
+            <button key={k} className={`rl-btn-m ${betType===k?'rl-m-on':''}`} disabled={spinning} onClick={()=>setBetType(k)}>{label}</button>
+          ))}
+        </div>
+        <div className="rl-bg-label" style={{marginTop:'5px'}}>Tuzin</div>
+        <div className="rl-row-m">
+          {[{k:'doz1',label:'1–12'},{k:'doz2',label:'13–24'},{k:'doz3',label:'25–36'}].map(({k,label})=>(
+            <button key={k} className={`rl-btn-m ${betType===k?'rl-m-on':''}`} disabled={spinning} onClick={()=>setBetType(k)}>{label}</button>
+          ))}
+        </div>
+        <div className="rl-bg-label" style={{marginTop:'5px'}}>Numer (0–36) · 35:1</div>
+        <div className="rl-num-row-m">
+          <input type="number" min="0" max="36" value={straightNum}
+            onChange={e=>setStraightNum(Math.max(0,Math.min(36,parseInt(e.target.value)||0)))}
+            disabled={spinning}/>
+          <button className={`rl-btn-m ${betType==='straight'?'rl-m-on':''}`} disabled={spinning} onClick={()=>setBetType('straight')}>Wybierz numer</button>
+        </div>
+      </div>
+      {betLabel && <div className="rl-selected-m">{betLabel}</div>}
+      <button className="btn btn-primary btn-big" disabled={!betType||spinning||cur.money<bet} onClick={spin}>
+        {spinning?'🎡 Kręci się…':'🎡 ZAKRĘĆ!'}
+      </button>
+      {result && (
+        <>
+          <div className={`rl-result-m ${result.won?'win':'lose'}`}>
+            {result.won?`🎉 ${result.num} — Wygrałeś +${result.net} zł!`:`😔 ${result.num} — Przegrałeś ${bet} zł`}
+          </div>
+          <button className="btn btn-primary btn-big" onClick={()=>api.resolveCasino(result.net)}>Kontynuuj →</button>
+        </>
+      )}
+      <button className="btn btn-close" onClick={api.skipCasino}>Pomiń kasyno</button>
+    </div>
+  );
+}
+
+const LOAN_OPTS = [
+  { amount:500,  owed:600,  rate:'20%' },
+  { amount:1000, owed:1250, rate:'25%' },
+  { amount:2000, owed:2600, rate:'30%' },
+];
+
+function LoanPanel({ game, api }) {
+  const cur = game.players[game.cur];
+  const [picking, setPicking] = React.useState(false);
+  const [sel, setSel] = React.useState(null);
+
+  // ── Ma już kredyt ──────────────────────────────
+  if(cur.loan){
+    const overdue = cur.loan.turnsLeft <= 0;
+    const danger  = cur.loan.turnsLeft < 0;
+    const canPay  = cur.money >= cur.loan.owed;
+    return (
+      <div className={`loan-bar${danger?' danger':overdue?' overdue':''}`}>
+        <div>
+          <div className={`loan-bar-left${overdue?' overdue':''}`}>💳 Kredyt bankowy</div>
+          <div className={`loan-bar-owed${overdue?' overdue':''}`}>{cur.loan.owed} zł</div>
+          <div className={`loan-bar-turns${overdue?' overdue':''}`}>
+            {cur.loan.turnsLeft > 0
+              ? `Do spłaty: ${cur.loan.turnsLeft} ${cur.loan.turnsLeft===1?'tura':'tury/tur'}`
+              : cur.loan.turnsLeft === 0
+                ? '⚠️ Ostatnia tura — spłać!'
+                : `⚠️ Po terminie! Odsetki rosną co turę`}
+          </div>
+        </div>
+        <button className="btn btn-primary"
+          style={{fontSize:'11px',padding:'6px 9px',whiteSpace:'nowrap'}}
+          disabled={!canPay}
+          onClick={api.repayLoan}>
+          {canPay ? `Spłać` : `Brakuje\n${cur.loan.owed-cur.money} zł`}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Picking ────────────────────────────────────
+  if(picking){
+    return (
+      <div className="loan-pick">
+        <div className="loan-pick-title">💳 Kredyt z Banku Spółdzielczego</div>
+        <div className="loan-opts">
+          {LOAN_OPTS.map(o=>(
+            <div key={o.amount} className={`loan-opt${sel===o.amount?' sel':''}`}
+              onClick={()=>setSel(o.amount)}>
+              <span className="loan-opt-main">{o.amount} zł</span>
+              <span className="loan-opt-info">
+                Zwrot: {o.owed} zł ({o.rate})<br/>
+                Termin: 6 własnych tur<br/>
+                Po terminie: +5% / turę
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="loan-row">
+          <button className="btn btn-primary" style={{flex:1}}
+            disabled={!sel}
+            onClick={()=>{ api.takeLoan(sel); setPicking(false); setSel(null); }}>
+            Biorę {sel ? sel+' zł' : ''}
+          </button>
+          <button className="btn btn-close" style={{flex:1}}
+            onClick={()=>{ setPicking(false); setSel(null); }}>
+            Anuluj
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Brak kredytu ──────────────────────────────
+  return (
+    <button className="btn" style={{width:'100%',fontSize:'12px',marginBottom:'4px',color:'#2266aa',borderColor:'#4a90d9'}}
+      onClick={()=>setPicking(true)}>
+      💳 Weź kredyt z banku
+    </button>
+  );
+}
+
+function EventLog({ log }) {
+  return (
+    <div className="event-log">
+      <div className="el-head">DZIENNIK MIEJSKI</div>
+      <div className="el-list">
+        {log.slice(0,30).map((e,i)=>(
+          <div key={e.t+'-'+i} className={`el-row ${e.kind}`}>{e.text}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Setup({ onStart }) {
+  const [count, setCount]     = useState(3);
+  const [names, setNames]     = useState(['Kuba','Zosia','Janek','Ola','Staś','Marysia']);
+  const [money, setMoney]     = useState(1500);
+  const [timeLimit, setTimeLimit] = useState(null); // null=bez limitu, 1200=20min, 2400=40min
+
+  const TIME_OPTS = [
+    { val:null,  label:'∞', sub:'Bez limitu' },
+    { val:1200,  label:'20', sub:'minut' },
+    { val:2400,  label:'40', sub:'minut' },
+  ];
+
+  return (
+    <div className="setup">
+      <div className="setup-hero">
+        <div className="setup-title">PŁOŃSKPOL</div>
+        <div className="setup-tag">gra planszowa o Mieście Młodości Chopina</div>
+        <div className="setup-stripes">
+          {['brown','lblue','pink','orange','red','yellow','green','blue'].map(g=>(
+            <div key={g} style={{background:GROUP_META[g].color}}/>
+          ))}
+        </div>
+      </div>
+      <div className="setup-card">
+        <h2>Nowa gra</h2>
+        <label>Liczba graczy</label>
+        <div className="count-pick">
+          {[2,3,4,5,6].map(n=>(
+            <button key={n} className={`cp ${count===n?'on':''}`} onClick={()=>setCount(n)}>{n}</button>
+          ))}
+        </div>
+        <label>Imiona</label>
+        <div className="name-list">
+          {Array.from({length:count}).map((_,i)=>(
+            <div key={i} className="name-row">
+              <span className="name-token" style={{background:TOKEN_COLOR(i)}}>{TOKENS[i].emoji}</span>
+              <input value={names[i]||''} onChange={e=>{
+                const nn = [...names]; nn[i]=e.target.value; setNames(nn);
+              }}/>
+              <span className="name-desc">{TOKENS[i].label}</span>
+            </div>
+          ))}
+        </div>
+        <label>Startowe Płońskie złote</label>
+        <div className="money-pick">
+          {[1000,1500,2000].map(m=>(
+            <button key={m} className={`cp ${money===m?'on':''}`} onClick={()=>setMoney(m)}>{m} zł</button>
+          ))}
+        </div>
+        <label>Czas gry</label>
+        <div className="count-pick" style={{gap:'8px'}}>
+          {TIME_OPTS.map(o=>(
+            <button key={String(o.val)} className={`cp ${timeLimit===o.val?'on':''}`}
+              onClick={()=>setTimeLimit(o.val)}
+              style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 12px',lineHeight:1.2}}>
+              <span style={{fontSize:'18px',fontWeight:700}}>{o.label}</span>
+              <span style={{fontSize:'9px',textTransform:'uppercase',letterSpacing:'.06em',opacity:.7}}>{o.sub}</span>
+            </button>
+          ))}
+        </div>
+        {timeLimit && (
+          <div style={{fontSize:'11px',color:'var(--muted)',marginTop:'6px',padding:'6px 10px',background:'var(--paper)',borderRadius:'4px',border:'1px solid var(--rule)'}}>
+            ⏰ Po {timeLimit/60} minutach gra się kończy — wygrywa gracz z największym majątkiem (gotówka + nieruchomości + domki/hotele).
+          </div>
+        )}
+        <button className="btn btn-primary btn-big"
+          onClick={()=>onStart(names.slice(0,count).map((n,i)=>n||`Gracz ${i+1}`), money, timeLimit)}>
+          Rozpocznij grę
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TweaksPanel({ game, api, onClose }){
+  return (
+    <div className="tweaks-panel">
+      <div className="tp-title">Tweaks</div>
+      <div className="tp-row">
+        <button className="btn" onClick={()=>{ if(confirm('Restart gry?')) api.resetGame(); }}>Reset gry</button>
+      </div>
+      <button className="btn btn-close" onClick={onClose}>Zamknij</button>
+    </div>
+  );
+}
+
+// ===== APP CORE =====
+function clone(g){
+  const ng = JSON.parse(JSON.stringify({
+    ...g,
+    players: g.players.map(p=>({...p, owns:[...p.owns], mortgaged:[...p.mortgaged]}))
+  }));
+  ng.players.forEach(p=>{ p.owns = new Set(p.owns); p.mortgaged = new Set(p.mortgaged); });
+  return ng;
+}
+
+function movePlayer(g, p, steps){
+  const prev = p.pos;
+  p.pos = (p.pos + steps) % 40;
+  if(p.pos < prev && steps>0){
+    let bonus = g.opts.passGo;
+    if(g.activeEvent?.effect.type==='go_bonus') bonus += g.activeEvent.effect.val;
+    p.money += bonus;
+    g.log.unshift({text:`${p.token} ${p.name} mija RYNEK (+${bonus} zł)`, kind:'good', t:Date.now()});
+  }
+  resolveTile(g, p, steps);
+}
+window.movePlayer = movePlayer;
+
+function sendToJail(g, p){
+  p.pos = 10; p.jail = true; p.jailTurns = 0; g.doublesCount = 0;
+  g.log.unshift({text:`${p.token} ${p.name}: prosto do ARESZTU!`, kind:'warn', t:Date.now()});
+}
+window.sendToJail = sendToJail;
+
+function pay(g, p, amount){
+  p.money -= amount;
+  if(p.money<0){
+    g.log.unshift({text:`⚠️ ${p.name} ma ${p.money} zł — sprzedaj domki lub zastaw nieruchomości!`, kind:'warn', t:Date.now()});
+  }
+}
+
+function canRaiseFunds(g, p){
+  if(Object.values(p.houses).some(h=>h>0)) return true;
+  return [...p.owns].some(i=>!p.mortgaged.has(i));
+}
+
+function declareBankrupt(g, p){
+  p.bankrupt = true;
+  p.owns.forEach(i=>{ delete g.owners[i]; delete p.houses[i]; });
+  p.owns = new Set(); p.mortgaged = new Set(); p.money = 0;
+  if(p.loan){ g.log.unshift({text:`🏦 Bank odpisuje kredyt ${p.loan.owed} zł — ${p.name} zbankrutował`, kind:'warn', t:Date.now()}); p.loan=null; }
+  g.log.unshift({text:`💀 ${p.token} ${p.name} zbankrutował i odpada z gry!`, kind:'warn', t:Date.now()});
+}
+
+// Buduje mapę kolor→tile oraz listę rail id (wywołuj raz)
+const _GROUP_TILES = {};
+const _RAIL_IDS = [];
+(function(){
+  BOARD.forEach(t=>{
+    if(t.type==='street'){ if(!_GROUP_TILES[t.group]) _GROUP_TILES[t.group]=[]; _GROUP_TILES[t.group].push(t.i); }
+    else if(t.type==='rail') _RAIL_IDS.push(t.i);
+  });
+})();
+
+function checkMonopolyWin(g){
+  if(g.phase==='gameover') return null;
+  for(const p of g.players){
+    if(p.bankrupt) continue;
+    const complete = Object.values(_GROUP_TILES).filter(tiles=>tiles.every(i=>p.owns.has(i))).length;
+    const rails    = _RAIL_IDS.filter(i=>p.owns.has(i)).length;
+    if(complete>=3 && rails===4) return p;
+  }
+  return null;
+}
+
+function doApplyCard(g, card){
+  const p = g.players[g.cur];
+  g.log.unshift({text:`🎴 ${card.text}`, kind:'info', t:Date.now()});
+  const a = card.act;
+  if(a.type==='money'){ p.money += a.n; }
+  else if(a.type==='jail'){ sendToJail(g, p); g.phase='end'; delete g.pendingCard; return; }
+  else if(a.type==='get_out_jail'){ p.getOutCards++; }
+  else if(a.type==='move'){
+    p.pos = (p.pos + a.n + 40) % 40;
+    delete g.pendingCard; resolveTile(g, p, Math.abs(a.n)); return;
+  }
+  else if(a.type==='move_to'){
+    const prev = p.pos; p.pos = a.i;
+    if(p.pos < prev) p.money += g.opts.passGo;
+    delete g.pendingCard; resolveTile(g, p, 0); return;
+  }
+  else if(a.type==='nearest_rail'){
+    const rails=[5,15,25,35]; const prev=p.pos;
+    const next = rails.find(r=>r>p.pos) || rails[0];
+    p.pos = next;
+    if(p.pos<prev) p.money += g.opts.passGo;
+    delete g.pendingCard; resolveTile(g, p, 0); return;
+  }
+  else if(a.type==='birthday'){
+    g.players.forEach(op=>{ if(op.id!==p.id && !op.bankrupt){ op.money-=a.n; p.money+=a.n; } });
+  }
+  else if(a.type==='repairs'){
+    let houses=0, hotels=0;
+    p.owns.forEach(i=>{ const h = p.houses[i]||0; if(h===5) hotels++; else houses+=h; });
+    p.money -= houses*a.house + hotels*a.hotel;
+  }
+  delete g.pendingCard; g.phase='end';
+}
+
+function resolveTile(g, p, roll){
+  const t = BOARD[p.pos];
+  if(t.type==='street' || t.type==='rail' || t.type==='utility'){
+    const owner = g.owners[t.i];
+    if(owner==null){ g.pendingBuy = t.i; g.phase = 'buy'; }
+    else if(owner!==p.id){
+      const ownerP = g.players[owner];
+      if(ownerP.mortgaged.has(t.i)){
+        g.log.unshift({text:`${t.name} jest w zastawie — czynszu brak`,kind:'info',t:Date.now()});
+        g.phase='end'; return;
+      }
+      const rent = rentFor(g, t, roll);
+      p.money -= rent; ownerP.money += rent;
+      g.log.unshift({text:`${p.name} płaci ${ownerP.name} ${rent} zł za ${t.name}`, kind:'warn', t:Date.now()});
+      if(p.money < 0 && !canRaiseFunds(g, p)) declareBankrupt(g, p);
+      g.phase='end';
+    } else { g.phase='end'; }
+  } else if(t.type==='tax'){
+    let amount = t.amount;
+    if(g.activeEvent?.effect.type==='tax_mult') amount = Math.round(amount * g.activeEvent.effect.val);
+    p.money -= amount;
+    g.log.unshift({text:`${p.name}: ${t.name} -${amount} zł`, kind:'warn', t:Date.now()});
+    g.phase='end';
+  } else if(t.type==='jail'){
+    sendToJail(g, p); g.phase='end';
+  } else if(t.type==='gotojail'){
+    sendToJail(g, p); g.phase='end';
+  } else if(t.type==='chance'){
+    const card = CHANCE[g.chanceIdx % CHANCE.length]; g.chanceIdx++;
+    g.pendingCard = {deck:'chance', card}; g.phase = 'card';
+  } else if(t.type==='chest'){
+    const card = CHEST[g.chestIdx % CHEST.length]; g.chestIdx++;
+    g.pendingCard = {deck:'chest', card}; g.phase = 'card';
+  } else if(t.type==='slot'){
+    g.phase='slot';
+  } else if(t.type==='stadium'){
+    g.phase='stadium';
+  } else if(t.type==='zabka'){
+    g.phase='zabka';
+  } else if(t.type==='jarmark'){
+    g.phase='jarmark';
+  } else if(t.type==='casino'){
+    g.phase='casino';
+  } else { g.phase='end'; }
+}
+
+function EventPopup({ text, hiding }) {
+  if(!text) return null;
+  const clean = text.replace('📰 WIADOMOŚCI: ','');
+  return (
+    <div className="event-popup-overlay">
+      <div className={`event-popup${hiding?' hiding':''}`}>
+        <div className="epop-label">📰 Wiadomości z Płońska</div>
+        <div className="epop-icon">🗞️</div>
+        <div className="epop-text">{clean}</div>
+      </div>
+    </div>
+  );
+}
+
+function applyImmediateEvent(g, ev){
+  const alive = g.players.filter(p=>!p.bankrupt);
+  const {type, val} = ev.effect;
+  if(type==='all_pay'){
+    alive.forEach(p=>{ p.money -= val; });
+  } else if(type==='all_gain'){
+    alive.forEach(p=>{ p.money += val; });
+  } else if(type==='hotel_bonus'){
+    alive.forEach(p=>{
+      const hasHotel = Object.values(p.houses).some(h=>h===5);
+      if(hasHotel){ p.money += val; }
+    });
+  } else if(type==='richest_pay'){
+    const richest = alive.reduce((a,b)=>netWorth(g,a.id)>netWorth(g,b.id)?a:b);
+    richest.money -= val;
+    g.log.unshift({text:`💸 ${richest.name} płaci podatek od bogactwa -${val} zł`, kind:'warn', t:Date.now()});
+  }
+}
+
+function drawEvent(g){
+  const events = window.CITY_EVENTS;
+  const ev = events[Math.random()*events.length|0];
+  g.log.unshift({text:`📰 WIADOMOŚCI: ${ev.text}${ev.turns>0?' ('+ev.turns+' rundy)':''}`, kind:'event', t:Date.now()});
+  if(ev.turns===0){
+    if(ev.effect.type!=='none') applyImmediateEvent(g, ev);
+    g.activeEvent = null;
+  } else {
+    g.activeEvent = { ...ev, turnsLeft: ev.turns };
+  }
+}
+
+function Lobby({ onCreateGame, onJoinGame }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState('');
+
+  async function handleJoin(){
+    if(code.length < 6) return;
+    setBusy(true); setErr('');
+    const result = await onJoinGame(code.toUpperCase());
+    if(result && result.error) setErr(result.error);
+    setBusy(false);
+  }
+
+  return (
+    <div className="lobby">
+      <div className="lobby-hero">
+        <div className="lobby-title">PŁOŃSKPOL</div>
+        <div className="lobby-sub">gra o Mieście Młodości Chopina</div>
+      </div>
+      <div className="lobby-cards">
+        <div className="lobby-card">
+          <span className="lobby-card-icon">🏠</span>
+          <div className="lobby-card-title">Stwórz grę</div>
+          <div className="lobby-card-desc">Skonfiguruj grę i zaproś znajomych kodem pokoju</div>
+          <button className="lobby-btn lobby-btn-primary" style={{marginTop:8}} onClick={onCreateGame}>
+            Stwórz grę
+          </button>
+        </div>
+        <div className="lobby-card">
+          <span className="lobby-card-icon">🔗</span>
+          <div className="lobby-card-title">Dołącz do gry</div>
+          <div className="lobby-card-desc">Wpisz kod od znajomego który stworzył pokój</div>
+          <input className="lobby-code-input" value={code}
+            onChange={e=>{ setCode(e.target.value.toUpperCase()); setErr(''); }}
+            onKeyDown={e=>e.key==='Enter'&&handleJoin()}
+            placeholder="ABC123" maxLength={6}/>
+          <div className="lobby-error">{err}</div>
+          <button className="lobby-btn lobby-btn-secondary" onClick={handleJoin}
+            disabled={busy || code.length < 6}>
+            {busy ? 'Łączenie…' : 'Dołącz →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [mpMode, setMpMode]       = useState('lobby');   // lobby | setup | game
+  const [roomCode, setRoomCode]   = useState(null);
+  const [myIdx, setMyIdx]         = useState(null);      // which player am I (0-based)
+  const roomRef  = useRef(null);
+  const myIdxRef = useRef(null);
+  const [game, setGame] = useState(null);
+  const [selectedTile, setSelectedTile] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [animState, setAnimState] = useState(null);
+  const prevPosRef = useRef(null);
+  const [popupText, setPopupText] = useState(null);
+  const [popupHiding, setPopupHiding] = useState(false);
+  const lastEventTRef = useRef(0);
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  // Keep refs in sync so useMemo callbacks can read latest values
+  useEffect(()=>{ roomRef.current = roomCode; }, [roomCode]);
+  useEffect(()=>{ myIdxRef.current = myIdx; }, [myIdx]);
+
+  // Firebase listener — sync remote state locally (without writing back)
+  useEffect(()=>{
+    if(!roomCode) return;
+    window.FB.listenState(roomCode, remoteGame => setGame(remoteGame));
+    return () => window.FB.unlistenState(roomCode);
+  }, [roomCode]);
+
+  // Wykryj nowe zdarzenie i pokaż popup
+  useEffect(()=>{
+    if(!game) return;
+    const latest = game.log.find(e => e.kind==='event');
+    if(latest && latest.t > lastEventTRef.current){
+      lastEventTRef.current = latest.t;
+      setPopupText(latest.text);
+      setPopupHiding(false);
+      setTimeout(()=>setPopupHiding(true), 2500);
+      setTimeout(()=>setPopupText(null), 3100);
+    }
+  }, [game]);
+
+  // Wykrywaj zmianę pozycji gracza i startuj animację
+  useEffect(()=>{
+    if(!game){ prevPosRef.current = null; return; }
+    const curPos = game.players.map(p => p.pos);
+    if(prevPosRef.current){
+      game.players.forEach((p, idx)=>{
+        if(!p.bankrupt && p.pos !== prevPosRef.current[idx]){
+          const from = prevPosRef.current[idx];
+          const to = p.pos;
+          // Buduj kroki do przodu po planszy
+          const steps = [];
+          let cur = from;
+          let count = 0;
+          while(cur !== to && count < 40){ cur = (cur+1)%40; steps.push(cur); count++; }
+          // Animuj tylko normalne rzuty (max 12 pól), resztę teleportuj
+          if(steps.length > 0 && steps.length <= 12){
+            setAnimState({ playerId: idx, displayPos: from, steps, stepIdx: 0 });
+          }
+        }
+      });
+    }
+    prevPosRef.current = curPos;
+  }, [game]);
+
+  // Przesuwaj pionek krok po kroku co 180ms
+  useEffect(()=>{
+    if(!animState) return;
+    if(animState.stepIdx >= animState.steps.length){ setAnimState(null); return; }
+    const timer = setTimeout(()=>{
+      setAnimState(prev => prev ? ({
+        ...prev,
+        displayPos: prev.steps[prev.stepIdx],
+        stepIdx: prev.stepIdx + 1,
+      }) : null);
+    }, 180);
+    return ()=>clearTimeout(timer);
+  }, [animState]);
+
+  const isAnimating = animState !== null;
+
+  useEffect(()=>{
+    const onMsg = (e) => {
+      if(e.data?.type==='__activate_edit_mode') setTweaksOpen(true);
+      if(e.data?.type==='__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    return ()=>window.removeEventListener('message', onMsg);
+  },[]);
+
+  const api = useMemo(() => {
+    const mutate = (fn) => setGame(g => {
+      const ng = clone(g); fn(ng);
+      if(roomRef.current) window.FB.writeState(roomRef.current, ng).catch(()=>{});
+      return ng;
+    });
+    const addLog = (g, text, kind) => g.log.unshift({ text, kind: kind||'info', t: Date.now() });
+
+    return {
+      rollDice(){
+        mutate(g => {
+          const p = g.players[g.cur];
+          const d1 = 1+Math.random()*6|0, d2 = 1+Math.random()*6|0;
+          g.dice = [d1,d2]; g.lastRoll = d1+d2;
+          const isDouble = d1===d2;
+          if(p.jail){
+            if(isDouble){
+              addLog(g, `${p.token} ${p.name}: dublet ${d1}-${d2} — wychodzi z aresztu!`, 'good');
+              p.jail = false; p.jailTurns = 0; movePlayer(g, p, d1+d2);
+            } else {
+              p.jailTurns++;
+              addLog(g, `${p.token} ${p.name}: ${d1}-${d2}, siedzi dalej (tura ${p.jailTurns}/3)`);
+              if(p.jailTurns>=3){
+                addLog(g, `${p.name} musi zapłacić 50 zł kaucji`, 'warn');
+                pay(g, p, 50); p.jail=false; p.jailTurns=0; movePlayer(g, p, d1+d2);
+              } else { g.phase = 'end'; }
+            }
+            return;
+          }
+          if(isDouble) g.doublesCount++; else g.doublesCount = 0;
+          if(g.doublesCount>=3){
+            addLog(g, `${p.name}: trzeci dublet — idziesz do aresztu!`, 'warn');
+            sendToJail(g, p); g.phase='end'; return;
+          }
+          addLog(g, `${p.token} ${p.name}: ${d1}+${d2}=${d1+d2}${isDouble?' 🎯':''}`);
+          movePlayer(g, p, d1+d2);
+        });
+      },
+      buyProperty(){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[p.pos];
+          if(!t.price || g.owners[t.i]!=null) return;
+          if(p.money < t.price){ addLog(g,'Za mało gotówki','warn'); return; }
+          p.money -= t.price; p.owns.add(t.i); g.owners[t.i] = p.id;
+          addLog(g, `${p.token} ${p.name} kupuje ${t.name} za ${t.price} zł`, 'good');
+          const mw = checkMonopolyWin(g);
+          if(mw){ g.monopolyWinner=mw.id; g.phase='gameover'; addLog(g,`👑 MONOPOL! ${mw.token} ${mw.name} ma 3 komplety kolorów i wszystkie dworce!`,'good'); return; }
+          g.phase = 'end';
+        });
+        setModal(null);
+      },
+      skipBuy(){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[p.pos];
+          const aliveCount = g.players.filter(pl=>!pl.bankrupt).length;
+          if(aliveCount >= 3){
+            g.pendingAuction = { tileIdx: t.i, excludePlayerId: p.id, bids: {} };
+            g.phase = 'auction';
+            addLog(g, `🏷️ ${p.name} rezygnuje — startuje aukcja na ${t.name}!`, 'info');
+          } else {
+            addLog(g, `${p.name} nie kupuje ${t.name}`);
+            g.phase = 'end';
+          }
+        });
+        setModal(null);
+      },
+      submitBid(playerId, amount){
+        mutate(g=>{
+          if(!g.pendingAuction) return;
+          if(!g.pendingAuction.bids) g.pendingAuction.bids = {};
+          g.pendingAuction.bids[playerId] = amount;
+          const excl = g.pendingAuction.excludePlayerId;
+          const eligible = g.players.filter(p=>!p.bankrupt && p.id!==excl);
+          addLog(g, `🏷️ ${g.players[playerId].token} ${g.players[playerId].name} złożył ofertę aukcyjną`, 'info');
+        });
+      },
+      resetAuctionBids(winnerIds){
+        mutate(g=>{
+          if(!g.pendingAuction) return;
+          // Keep only tiebreakers as eligible, reset bids
+          g.pendingAuction.bids = {};
+          g.pendingAuction.tiebreakIds = winnerIds;
+          addLog(g, `🏷️ Dogrywka aukcji: ${winnerIds.map(id=>g.players[id].name).join(' vs ')}`, 'info');
+        });
+      },
+      resolveAuction(winnerId, amount){
+        mutate(g=>{
+          const winner = g.players[winnerId];
+          const tile = BOARD[g.pendingAuction.tileIdx];
+          winner.money -= amount;
+          winner.owns.add(tile.i);
+          g.owners[tile.i] = winnerId;
+          addLog(g, `🏷️ ${winner.token} ${winner.name} kupuje ${tile.name} za ${amount} zł na aukcji!`, 'good');
+          delete g.pendingAuction;
+          const mw = checkMonopolyWin(g);
+          if(mw){ g.monopolyWinner=mw.id; g.phase='gameover'; addLog(g,`👑 MONOPOL! ${mw.token} ${mw.name} ma 3 komplety kolorów i wszystkie dworce!`,'good'); return; }
+          g.phase = 'end';
+        });
+      },
+      skipAuction(){
+        mutate(g=>{
+          const tile = BOARD[g.pendingAuction.tileIdx];
+          addLog(g, `🏷️ Nikt nie kupił ${tile.name} — wraca do banku`);
+          delete g.pendingAuction; g.phase = 'end';
+        });
+      },
+      endTurn(){
+        mutate(g=>{
+          const curP = g.players[g.cur];
+          // Sprawdź bankructwo przed końcem tury
+          if(curP.money < 0 && !curP.bankrupt){
+            if(canRaiseFunds(g, curP)){
+              addLog(g, `⚠️ ${curP.name} ma dług! Najpierw sprzedaj domki lub zastaw nieruchomości.`, 'warn');
+              return;
+            }
+            declareBankrupt(g, curP);
+          }
+          // Odlicz turę kredytu i dolicz odsetki karne jeśli po terminie
+          if(curP.loan){
+            curP.loan.turnsLeft--;
+            if(curP.loan.turnsLeft < 0){
+              const penalty = Math.round(curP.loan.owed * 0.05);
+              curP.loan.owed += penalty;
+              addLog(g, `💸 ${curP.name} nie spłaca kredytu! Odsetki karne +${penalty} zł → dług: ${curP.loan.owed} zł`, 'warn');
+            } else if(curP.loan.turnsLeft === 0){
+              addLog(g, `⚠️ ${curP.name}: ostatnia tura na spłatę kredytu! (${curP.loan.owed} zł)`, 'warn');
+            }
+          }
+          const isDouble = g.dice[0]===g.dice[1];
+          if(isDouble && !curP.jail && g.doublesCount>0 && g.doublesCount<3){
+            addLog(g, `${curP.name} rzuca ponownie (dublet)`, 'good'); g.phase='roll'; return;
+          }
+          g.doublesCount=0;
+          const alive = g.players.filter(p=>!p.bankrupt);
+          if(alive.length<=1){ g.phase='gameover'; addLog(g, `🏆 Wygrywa ${alive[0]?.name||'nikt'}!`, 'good'); return; }
+
+          let next = g.cur;
+          do { next = (next+1)%g.players.length; } while(g.players[next].bankrupt);
+
+          // Nowa runda — gdy wrócimy do pierwszego żywego gracza
+          const firstAliveId = g.players.find(p=>!p.bankrupt).id;
+          if(g.players[next].id === firstAliveId && (g.turnCount||0) > 0){
+            // Odlicz aktywne zdarzenie
+            if(g.activeEvent){
+              g.activeEvent.turnsLeft--;
+              if(g.activeEvent.turnsLeft <= 0){
+                addLog(g, `📰 Zdarzenie zakończone: ${g.activeEvent.text}`, 'info');
+                g.activeEvent = null;
+              }
+            }
+            // Losuj nowe zdarzenie
+            drawEvent(g);
+          }
+
+          g.turnCount = (g.turnCount||0) + 1;
+          g.cur = next; g.phase='roll';
+        });
+      },
+      payJail(){
+        mutate(g=>{ const p = g.players[g.cur]; if(p.money<50) return; p.money-=50; p.jail=false; p.jailTurns=0; addLog(g, `${p.name} płaci kaucję 50 zł`); });
+      },
+      useJailCard(){
+        mutate(g=>{ const p = g.players[g.cur]; if(p.getOutCards<=0) return; p.getOutCards--; p.jail=false; p.jailTurns=0; addLog(g, `${p.name} używa karty "Wyjście z aresztu"`); });
+      },
+      buildHouse(i){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[i];
+          let cost = housePrice(t.group);
+          if(g.activeEvent?.effect.type==='build_disc') cost = Math.round(cost * g.activeEvent.effect.val);
+          if(p.money<cost) return;
+          const cur = p.houses[i]||0; if(cur>=5) return;
+          const sibs = BOARD.filter(x=>x.group===t.group);
+          const minLvl = Math.min(...sibs.map(x => p.houses[x.i]||0));
+          if(cur>minLvl){ addLog(g,'Najpierw zbuduj na pozostałych ulicach tej dzielnicy','warn'); return; }
+          p.money -= cost; p.houses[i] = cur+1;
+          addLog(g, `${p.token} ${p.name} buduje ${cur+1===5?'HOTEL':`domek #${cur+1}`} na ${t.name}`, 'good');
+        });
+      },
+      sellHouse(i){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[i]; const cost = housePrice(t.group);
+          const cur = p.houses[i]||0; if(cur<=0) return;
+          const sibs = BOARD.filter(x=>x.group===t.group);
+          const maxLvl = Math.max(...sibs.map(x => p.houses[x.i]||0));
+          if(cur<maxLvl){ addLog(g,'Najpierw sprzedaj z ulic z większą liczbą domków','warn'); return; }
+          p.money += cost/2; p.houses[i] = cur-1;
+          if(p.houses[i]===0) delete p.houses[i];
+          addLog(g, `${p.name} sprzedaje budynek na ${t.name} za ${cost/2} zł`);
+        });
+      },
+      mortgage(i){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[i];
+          if(p.mortgaged.has(i)) return;
+          if((p.houses[i]||0)>0){ addLog(g,'Najpierw sprzedaj budynki','warn'); return; }
+          p.money += t.price/2; p.mortgaged.add(i);
+          addLog(g, `${p.name} zastawia ${t.name} za ${t.price/2} zł`);
+        });
+      },
+      unmortgage(i){
+        mutate(g=>{
+          const p = g.players[g.cur]; const t = BOARD[i]; const cost = Math.ceil(t.price*0.55);
+          if(p.money<cost) return; p.money -= cost; p.mortgaged.delete(i);
+          addLog(g, `${p.name} wykupuje ${t.name} za ${cost} zł`);
+        });
+      },
+      resolveJarmark(rolls, ante){
+        mutate(g=>{
+          const alive = g.players.filter(p=>!p.bankrupt);
+          // Pobierz stawkę od każdego gracza (ile ma, tyle płaci)
+          alive.forEach(p=>{ p.money -= Math.min(ante, Math.max(0, p.money)); });
+          const pot = ante * alive.length;
+          const maxRoll = Math.max(...rolls.map(r=>r.roll));
+          const winIds = rolls.filter(r=>r.roll===maxRoll).map(r=>r.id);
+          const share = Math.floor(pot / winIds.length);
+          winIds.forEach(id=>{ g.players[id].money += share; });
+          if(winIds.length===1){
+            const w = g.players[winIds[0]];
+            addLog(g, `🎪 ${w.token} ${w.name} wygrał jarmark i zgarnął ${pot} zł!`, 'good');
+          } else {
+            const names = winIds.map(id=>g.players[id].name).join(' i ');
+            addLog(g, `🎪 Remis na jarmarku! ${names} dzielą po ${share} zł`, 'info');
+          }
+          g.phase='end';
+        });
+      },
+      payZabka(price, what){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          if(p.money < price) return;
+          p.money -= price;
+          if(what==='zdrapka') addLog(g, `🎫 ${p.token} ${p.name} kupuje zdrapkę w Żabce za ${price} zł`, 'info');
+        });
+      },
+      buyMalpka(price){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          if(p.money < price) return;
+          p.money -= price;
+          // Losowe pole (0-39), inne niż obecne
+          let newPos;
+          do { newPos = Math.floor(Math.random()*40); } while(newPos === p.pos);
+          p.pos = newPos;
+          const tile = BOARD[newPos];
+          addLog(g, `🥃 ${p.token} ${p.name} wypija małpkę — teleportacja na ${tile.name}! (${price} zł)`, 'info');
+          g.phase = 'end';
+        });
+      },
+      skipZabka(){
+        mutate(g=>{
+          addLog(g, `${g.players[g.cur].name} mija Żabkę`);
+          g.phase = 'end';
+        });
+      },
+      resolveScratch(win){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          if(win > 0){
+            p.money += win;
+            addLog(g, `🎫 ${p.token} ${p.name} zdrapuje ${win} zł!`, 'good');
+          } else {
+            addLog(g, `🎫 ${p.token} ${p.name} nie wygrywa na zdrapce`, 'info');
+          }
+          g.phase = 'end';
+        });
+      },
+      takeLoan(amount){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          if(p.loan) return;
+          const opts = {500:{owed:600}, 1000:{owed:1250}, 2000:{owed:2600}};
+          const opt = opts[amount]; if(!opt) return;
+          p.money += amount;
+          p.loan = { owed: opt.owed, turnsLeft: 6 };
+          addLog(g, `💳 ${p.token} ${p.name} bierze kredyt ${amount} zł · do zwrotu: ${opt.owed} zł (6 tur)`, 'info');
+        });
+      },
+      repayLoan(){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          if(!p.loan || p.money < p.loan.owed) return;
+          p.money -= p.loan.owed;
+          addLog(g, `✅ ${p.token} ${p.name} spłacił kredyt (${p.loan.owed} zł)`, 'good');
+          p.loan = null;
+        });
+      },
+      resolveStadium(net){
+        mutate(g=>{
+          const p=g.players[g.cur];
+          p.money+=net;
+          if(net>0) addLog(g,`⚽ ${p.token} ${p.name} strzelił gola i wygrał ${net} zł na stadionie!`,'good');
+          else addLog(g,`🧤 ${p.token} ${p.name} — karny obroniony! Traci ${-net} zł`,'warn');
+          g.phase='end';
+        });
+      },
+      skipStadium(){
+        mutate(g=>{ addLog(g,`${g.players[g.cur].name} omija stadion`); g.phase='end'; });
+      },
+      resolveSlot(bet, win){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          p.money -= bet;
+          if(win > 0){
+            p.money += win;
+            addLog(g, `🎰 ${p.token} ${p.name} wygrywa ${win} zł na automacie!`, 'good');
+          } else {
+            addLog(g, `🎰 ${p.token} ${p.name} traci ${bet} zł na automacie`, 'warn');
+          }
+          g.phase = 'end';
+        });
+      },
+      skipSlot(){
+        mutate(g=>{
+          addLog(g, `${g.players[g.cur].name} omija automat`);
+          g.phase = 'end';
+        });
+      },
+      resolveCasino(net){
+        mutate(g=>{
+          const p = g.players[g.cur];
+          p.money += net;
+          if(net > 0) addLog(g, `🃏 ${p.token} ${p.name} wygrywa ${net} zł w kasynie!`, 'good');
+          else if(net < 0) addLog(g, `🃏 ${p.token} ${p.name} przegrywa ${-net} zł w kasynie`, 'warn');
+          else addLog(g, `🃏 ${p.token} ${p.name}: remis w kasynie`);
+          g.phase = 'end';
+        });
+      },
+      skipCasino(){
+        mutate(g=>{
+          addLog(g, `${g.players[g.cur].name} omija kasyno`);
+          g.phase = 'end';
+        });
+      },
+      async newGame(names, startMoney, timeLimit){
+        const g = createGame(names, {startMoney, timeLimit});
+        g.log.unshift({text:'Gra rozpoczęta. Rzucaj kostką!',kind:'good',t:Date.now()});
+        const code = window.FB.genCode();
+        await window.FB.createRoom(code, g);
+        setRoomCode(code); setMyIdx(0); setGame(g); setMpMode('game');
+      },
+      timeUp(){
+        mutate(g=>{
+          if(g.phase==='gameover') return;
+          const nw = window.netWorth || ((g,pid)=>g.players[pid].money);
+          const ranking = g.players
+            .map(p=>({...p, nw: nw(g, p.id)}))
+            .sort((a,b)=>b.nw-a.nw);
+          g.timeUpRanking = ranking;
+          g.phase = 'gameover';
+          addLog(g, `⏰ Czas minął! Wygrywa ${ranking[0].token} ${ranking[0].name} z majątkiem ${ranking[0].nw} zł!`, 'good');
+        });
+      },
+      resetGame(){
+        if(roomRef.current) window.FB.unlistenState(roomRef.current);
+        localStorage.removeItem('plonskpol_game');
+        setGame(null); setRoomCode(null); setMyIdx(null); setMpMode('lobby');
+      },
+      openModal: setModal,
+      setSelectedTile,
+      applyCard(card){ mutate(g => { doApplyCard(g, card); }); },
+    };
+  }, []);
+
+  useEffect(()=>{ window.__applyCardFn = (g, card) => api.applyCard(card); }, [api]);
+
+  // Odliczanie czasu gry
+  useEffect(()=>{
+    if(!game || !game.timeLimit || !game.startTime) { setTimeLeft(null); return; }
+    if(game.phase === 'gameover') { setTimeLeft(null); return; }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - game.startTime) / 1000);
+      const left = Math.max(0, game.timeLimit - elapsed);
+      setTimeLeft(left);
+    };
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [game]);
+
+  // Wywołaj timeUp gdy czas minie
+  useEffect(()=>{
+    if(timeLeft === 0 && game && game.phase !== 'gameover'){
+      api.timeUp();
+    }
+  }, [timeLeft]);
+
+  // Join game handler (called from Lobby)
+  async function handleJoinGame(code){
+    const result = await window.FB.joinRoom(code, window.FB.getSid());
+    if(result.error) return result;
+    setRoomCode(code); setMyIdx(result.idx); setGame(result.game); setMpMode('game');
+    return {};
+  }
+
+  if(mpMode === 'lobby') return <Lobby onCreateGame={()=>setMpMode('setup')} onJoinGame={handleJoinGame}/>;
+  if(mpMode === 'setup') return <Setup onStart={api.newGame}/>;
+  if(!game) return <div style={{color:'#fff',padding:40,textAlign:'center'}}>⏳ Łączenie…</div>;
+
+  const isMyTurn = myIdx !== null && game.cur === myIdx;
+  const cur = game.players[game.cur];
+  return (
+    <div className="app">
+      <Header game={game} api={api} timeLeft={timeLeft} roomCode={roomCode} isMyTurn={isMyTurn} myIdx={myIdx}/>
+      <div className="main">
+        <div className="left-panel">
+          {game.players.map(p => (
+            <PlayerCard key={p.id} player={p} isActive={p.id===game.cur} state={game}/>
+          ))}
+        </div>
+        <Board game={game} onTileClick={t=>setSelectedTile(t)} animState={animState} />
+        <div className="right-panel">
+          {game.activeEvent && (
+            <div className="event-banner">
+              <div className="eb-label">📰 Wiadomości z Płońska</div>
+              <div className="eb-text">{game.activeEvent.text}</div>
+              <div className="eb-turns">Pozostało: {game.activeEvent.turnsLeft} {game.activeEvent.turnsLeft===1?'runda':'rundy'}</div>
+            </div>
+          )}
+          <TurnPanel game={game} api={api} isAnimating={isAnimating} isMyTurn={isMyTurn} myIdx={myIdx}/>
+          <EventLog log={game.log}/>
+        </div>
+      </div>
+      {selectedTile && <PropertyCard tile={selectedTile} state={game} onClose={()=>setSelectedTile(null)} api={api}/>}
+      {modal && <div/>}
+      <EventPopup text={popupText} hiding={popupHiding}/>
+      {tweaksOpen && <TweaksPanel game={game} api={api} onClose={()=>setTweaksOpen(false)}/>}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
