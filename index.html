@@ -356,6 +356,11 @@ input{font-family:inherit}
 .loan-opt-info{font-size:10px;color:var(--muted);text-align:right;line-height:1.4}
 .loan-row{display:flex;gap:6px}
 .loan-warning{font-size:10px;color:var(--warn);font-weight:700;text-align:center;padding:4px 6px;background:#fff3f0;border-radius:4px;margin-bottom:6px}
+/* AI */
+.ai-toggle{display:flex;border-radius:5px;overflow:hidden;border:1.5px solid var(--rule);flex-shrink:0}
+.ai-toggle button{padding:4px 8px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:var(--paper-2);color:var(--muted);transition:all .12s;font-family:var(--font-body)}
+.ai-toggle button.active{background:var(--ink);color:var(--yellow)}
+.tp-ai-badge{display:inline-block;background:#1a1a1a;color:var(--yellow);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
 /* pc-loan badge */
 .pc-loan{margin-top:5px;font-size:10px;font-weight:700;color:#2266aa;display:flex;align-items:center;gap:4px}
 .pc-loan.overdue{color:var(--warn)}
@@ -556,6 +561,7 @@ window.CHEST = [
     opts = opts || {};
     const startMoney = opts.startMoney || 1500;
     const timeLimit  = opts.timeLimit  || null; // sekundy, null = bezlimitu
+    const aiPlayers  = opts.aiPlayers  || [];   // tablica indeksów AI
     const players = playerNames.map((n,i)=>makePlayer(i, n, startMoney));
     return {
       players, cur: 0, dice: [1,1], doublesCount: 0,
@@ -565,6 +571,7 @@ window.CHEST = [
       activeEvent: null, turnCount: 0,
       timeLimit, startTime: timeLimit ? Date.now() : null,
       timeUpRanking: null, monopolyWinner: null,
+      aiPlayers,
     };
   }
   window.createGame = createGame;
@@ -1129,8 +1136,10 @@ function TurnPanel({ game, api, isAnimating, isMyTurn, myIdx }) {
     </div>;
   }
 
+  const curIsAi = (game.aiPlayers||[]).includes(game.cur);
+
   // Not my turn — show waiting panel (but NOT during auction where everyone participates)
-  if(isMyTurn === false && game.phase !== 'auction'){
+  if(isMyTurn === false && !curIsAi && game.phase !== 'auction'){
     return (
       <div className="turn-panel">
         <div className="tp-head">tura gracza</div>
@@ -1152,9 +1161,12 @@ function TurnPanel({ game, api, isAnimating, isMyTurn, myIdx }) {
       <div className="tp-head">tura gracza</div>
       <div className="tp-player" style={{color:TOKEN_COLOR(cur.id)}}>
         <span className="tp-token">{cur.token}</span>
-        <span className="tp-name">{cur.name}</span>
+        <span className="tp-name">{cur.name}{curIsAi && <span className="tp-ai-badge">🤖 AI</span>}</span>
       </div>
       <div className="tp-pos">na polu: <b>{tile.name}</b></div>
+      {curIsAi && !isAnimating && game.phase!=='gameover' && (
+        <div style={{textAlign:'center',padding:'8px 0',fontSize:'12px',color:'var(--muted)',letterSpacing:'.04em'}}>⏳ AI myśli…</div>
+      )}
       {isAnimating && <div style={{textAlign:'center',padding:'14px 0',fontSize:'15px',letterSpacing:'.05em'}}>🎲 pionek się porusza…</div>}
       {!isAnimating && cur.jail && game.phase==='roll' && (
         <div className="tp-jail-opts">
@@ -2382,6 +2394,7 @@ function EventLog({ log }) {
 function Setup({ onStart }) {
   const [count, setCount]     = useState(3);
   const [names, setNames]     = useState(['Kuba','Zosia','Janek','Ola','Staś','Marysia']);
+  const [isAi, setIsAi]       = useState([false,false,false,false,false,false]);
   const [money, setMoney]     = useState(1500);
   const [timeLimit, setTimeLimit] = useState(null); // null=bez limitu, 1200=20min, 2400=40min
 
@@ -2410,7 +2423,7 @@ function Setup({ onStart }) {
             <button key={n} className={`cp ${count===n?'on':''}`} onClick={()=>setCount(n)}>{n}</button>
           ))}
         </div>
-        <label>Imiona</label>
+        <label>Gracze</label>
         <div className="name-list">
           {Array.from({length:count}).map((_,i)=>(
             <div key={i} className="name-row">
@@ -2418,7 +2431,10 @@ function Setup({ onStart }) {
               <input value={names[i]||''} onChange={e=>{
                 const nn = [...names]; nn[i]=e.target.value; setNames(nn);
               }}/>
-              <span className="name-desc">{TOKENS[i].label}</span>
+              <div className="ai-toggle">
+                <button className={!isAi[i]?'active':''} onClick={()=>{const a=[...isAi];a[i]=false;setIsAi(a);}}>👤</button>
+                <button className={isAi[i]?'active':''} onClick={()=>{const a=[...isAi];a[i]=true;setIsAi(a);}}>🤖</button>
+              </div>
             </div>
           ))}
         </div>
@@ -2445,7 +2461,11 @@ function Setup({ onStart }) {
           </div>
         )}
         <button className="btn btn-primary btn-big"
-          onClick={()=>onStart(names.slice(0,count).map((n,i)=>n||`Gracz ${i+1}`), money, timeLimit)}>
+          onClick={()=>{
+            const finalNames = names.slice(0,count).map((n,i)=>n||(isAi[i]?`AI ${i+1}`:`Gracz ${i+1}`));
+            const aiIdx = finalNames.map((_,i)=>i).filter(i=>isAi[i]);
+            onStart(finalNames, money, timeLimit, aiIdx);
+          }}>
           Rozpocznij grę
         </button>
       </div>
@@ -3179,8 +3199,8 @@ function App() {
           g.phase = 'end';
         });
       },
-      async newGame(names, startMoney, timeLimit){
-        const g = createGame(names, {startMoney, timeLimit});
+      async newGame(names, startMoney, timeLimit, aiPlayers){
+        const g = createGame(names, {startMoney, timeLimit, aiPlayers: aiPlayers||[]});
         g.log.unshift({text:'Gra rozpoczęta. Rzucaj kostką!',kind:'good',t:Date.now()});
         const code = window.FB.genCode();
         await window.FB.createRoom(code, g);
@@ -3231,6 +3251,88 @@ function App() {
       api.timeUp();
     }
   }, [timeLeft]);
+
+  // ── AI turn handler ──────────────────────────────
+  useEffect(()=>{
+    if(!game || game.phase==='gameover' || isAnimating) return;
+    const aiSet = new Set(game.aiPlayers||[]);
+    if(aiSet.size===0) return;
+
+    // Auction: any AI player that hasn't bid yet
+    if(game.phase==='auction'){
+      const pa = game.pendingAuction;
+      if(!pa) return;
+      const tile = BOARD[pa.tileIdx];
+      const excluded = new Set(pa.excludedIds||[]);
+      const bids = pa.bids||{};
+      const tiebreak = pa.tiebreakIds ? new Set(pa.tiebreakIds) : null;
+      // Find first eligible AI that hasn't bid
+      for(const idx of aiSet){
+        const p = game.players[idx];
+        if(p.bankrupt) continue;
+        if(excluded.has(idx)) continue;
+        if(tiebreak && !tiebreak.has(idx)) continue;
+        if(bids[idx]!==undefined) continue;
+        // Submit bid after short delay
+        const maxBid = Math.min(Math.floor(tile.price*0.72), Math.floor(p.money*0.55));
+        const bid = Math.max(0, maxBid);
+        const t = setTimeout(()=>api.submitBid(idx, bid), 900+Math.random()*600);
+        return ()=>clearTimeout(t);
+      }
+      return;
+    }
+
+    // Only act on current player's turn if they're AI
+    if(!aiSet.has(game.cur)) return;
+    const cur = game.players[game.cur];
+    let action = null;
+    const delay = 800 + Math.random()*700;
+
+    if(game.phase==='roll'){
+      if(cur.jail){
+        if(cur.getOutCards>0) action=()=>api.useJailCard();
+        else if(cur.jailTurns>=2 && cur.money>=50) action=()=>api.payJail();
+        else action=()=>api.rollDice();
+      } else {
+        action=()=>api.rollDice();
+      }
+    } else if(game.phase==='buy'){
+      const tile = BOARD[game.pendingBuy];
+      action = cur.money >= tile.price*1.05+250 ? ()=>api.buyProperty() : ()=>api.skipBuy();
+    } else if(game.phase==='card'){
+      action=()=>api.applyCard(game.pendingCard.card);
+    } else if(game.phase==='zabka'){
+      action=()=>api.skipZabka();
+    } else if(game.phase==='jarmark'){
+      const alive=game.players.filter(p=>!p.bankrupt);
+      const rolls=alive.map(p=>({id:p.id,token:p.token,name:p.name,roll:(1+Math.random()*6|0)+(1+Math.random()*6|0)}));
+      action=()=>api.resolveJarmark(rolls,80);
+    } else if(game.phase==='slot'){
+      action=()=>api.skipSlot();
+    } else if(game.phase==='stadium'){
+      action=()=>api.skipStadium();
+    } else if(game.phase==='casino'){
+      action=()=>api.skipCasino();
+    } else if(game.phase==='end'){
+      // Try to build a house if affordable and has monopoly
+      let built=false;
+      for(const tileId of [...cur.owns]){
+        const tile=BOARD[tileId];
+        if(!tile||tile.type!=='street') continue;
+        const grp=_GROUP_TILES[tile.group];
+        if(!grp||!grp.every(i=>cur.owns.has(i))) continue;
+        if(cur.mortgaged.has(tileId)) continue;
+        const h=cur.houses[tileId]||0; if(h>=5) continue;
+        const cost=housePrice(tile.group);
+        if(cur.money>=cost+500){ action=()=>api.buildHouse(tileId); built=true; break; }
+      }
+      if(!built) action=()=>api.endTurn();
+    }
+
+    if(!action) return;
+    const t=setTimeout(action, delay);
+    return ()=>clearTimeout(t);
+  }, [game, isAnimating]);
 
   // Join game handler (called from Lobby)
   async function handleJoinGame(code){
