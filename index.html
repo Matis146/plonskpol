@@ -2536,7 +2536,7 @@ function declareBankrupt(g, p){
 
 // Bank przejmuje najtańszą nieruchomość gracza na poczet kredytu
 function seizePropertyForLoan(g, p){
-  const ownedTiles = [...p.owns].map(i=>BOARD[i]).filter(t=>t.price).sort((a,b)=>a.price-b.price);
+  const ownedTiles = [...p.owns].map(i=>BOARD[i]).filter(t=>t&&t.price).sort((a,b)=>a.price-b.price);
   if(ownedTiles.length===0) return false;
   const tile = ownedTiles[0];
   const val = Math.floor(tile.price/2);
@@ -2544,11 +2544,11 @@ function seizePropertyForLoan(g, p){
   delete g.owners[tile.i]; delete p.houses[tile.i];
   p.loan.owed = Math.max(0, p.loan.owed - val);
   if(p.loan.owed===0){
-    addLog(g, `🏦 Bank przejął ${tile.name} (${val} zł) — kredyt umorzony!`, 'warn');
+    g.log.unshift({text:`🏦 Bank przejął ${tile.name} (${val} zł) — kredyt umorzony!`, kind:'warn', t:Date.now()});
     p.loan = null;
   } else {
-    addLog(g, `🏦 Bank przejął ${tile.name} (${val} zł) na poczet kredytu · pozostało: ${p.loan.owed} zł`, 'warn');
-    p.loan.turnsLeft = 1; // jeszcze jedna tura na spłatę reszty
+    g.log.unshift({text:`🏦 Bank przejął ${tile.name} (${val} zł) na poczet kredytu · pozostało: ${p.loan.owed} zł`, kind:'warn', t:Date.now()});
+    p.loan.turnsLeft = 1;
     if(p.loan.type==='installment'){
       p.loan.installmentsLeft = Math.ceil(p.loan.owed / p.loan.installmentAmount);
     }
