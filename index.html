@@ -808,7 +808,7 @@ function housePrice(group){
 }
 window.housePrice = housePrice;
 
-function PropertyCard({ tile, state, onClose, api }) {
+function PropertyCard({ tile, state, onClose, api, myIdx }) {
   if(!tile) return null;
   const group = tile.group ? GROUP_META[tile.group] : null;
   const ownerId = state.owners[tile.i];
@@ -816,11 +816,16 @@ function PropertyCard({ tile, state, onClose, api }) {
   const cur = state.players[state.cur];
   const houses = owner ? (owner.houses[tile.i]||0) : 0;
   const hasGroup = owner && tile.group && hasFullGroup(state, ownerId, tile.group);
-  const canBuild = owner && owner.id===cur.id && hasGroup && !owner.mortgaged.has(tile.i) && houses<5 && tile.type==='street';
-  const canSell = owner && owner.id===cur.id && houses>0;
-  const canMortgage = owner && owner.id===cur.id && !owner.mortgaged.has(tile.i) && houses===0;
-  const canUnmortgage = owner && owner.id===cur.id && owner.mortgaged.has(tile.i);
-  const houseCost = tile.type==='street' ? housePrice(tile.group) : 0;
+  // Akcje tylko dla aktualnego gracza NA JEGO URZĄDZENIU
+  const isMyTurnHere = myIdx === null || myIdx === state.cur;
+  const canBuild = isMyTurnHere && owner && owner.id===cur.id && !owner.mortgaged.has(tile.i) && houses<5 && tile.type==='street'
+    && (houses < 2 || hasGroup); // pierwsze 2 domki bez koloru, 3+ wymaga koloru
+  const canSell = isMyTurnHere && owner && owner.id===cur.id && houses>0;
+  const canMortgage = isMyTurnHere && owner && owner.id===cur.id && !owner.mortgaged.has(tile.i) && houses===0;
+  const canUnmortgage = isMyTurnHere && owner && owner.id===cur.id && owner.mortgaged.has(tile.i);
+  const baseHouseCost = tile.type==='street' ? housePrice(tile.group) : 0;
+  const evDisc = state.activeEvent?.effect.type==='build_disc' ? state.activeEvent.effect.val : 1;
+  const houseCost = Math.round(baseHouseCost * evDisc);
 
   return (
     <div className="card-backdrop" onClick={onClose}>
@@ -2956,8 +2961,13 @@ function App() {
             }
             declareBankrupt(g, curP);
           }
-          // Obsługa kredytu
-          if(curP.loan){
+          // Dublet — gracz rzuca ponownie, rata NIE jest pobierana
+          const isDouble = g.dice[0]===g.dice[1];
+          if(isDouble && !curP.jail && g.doublesCount>0 && g.doublesCount<3){
+            addLog(g, `${curP.name} rzuca ponownie (dublet)`, 'good'); g.phase='roll'; return;
+          }
+          // Obsługa kredytu — tylko gdy tura naprawdę się kończy (nie dublet)
+          if(curP.loan && !curP.bankrupt){
             if(curP.loan.type==='installment'){
               // Raty — auto-odciąganie
               if(curP.money >= curP.loan.installmentAmount){
@@ -2982,17 +2992,12 @@ function App() {
               if(curP.loan.turnsLeft === 0){
                 addLog(g, `⚠️ ${curP.token} ${curP.name}: OSTATNIA tura na spłatę kredytu! (${curP.loan.owed} zł)`, 'warn');
               } else if(curP.loan.turnsLeft < 0){
-                // Przekroczono termin — bank przejmuje nieruchomość
                 addLog(g, `🏦 Termin spłaty minął! Bank egzekwuje należność od ${curP.name}…`, 'warn');
                 if(!seizePropertyForLoan(g, curP) && curP.loan){
                   declareBankrupt(g, curP);
                 }
               }
             }
-          }
-          const isDouble = g.dice[0]===g.dice[1];
-          if(isDouble && !curP.jail && g.doublesCount>0 && g.doublesCount<3){
-            addLog(g, `${curP.name} rzuca ponownie (dublet)`, 'good'); g.phase='roll'; return;
           }
           g.doublesCount=0;
           const alive = g.players.filter(p=>!p.bankrupt);
@@ -3012,8 +3017,8 @@ function App() {
                 g.activeEvent = null;
               }
             }
-            // Losuj nowe zdarzenie
-            drawEvent(g);
+            // Losuj nowe zdarzenie tylko gdy poprzednie wygasło
+            if(!g.activeEvent) drawEvent(g);
           }
 
           g.turnCount = (g.turnCount||0) + 1;
@@ -3032,10 +3037,18 @@ function App() {
           let cost = housePrice(t.group);
           if(g.activeEvent?.effect.type==='build_disc') cost = Math.round(cost * g.activeEvent.effect.val);
           if(p.money<cost) return;
+          if(p.mortgaged.has(i)) return;
           const cur = p.houses[i]||0; if(cur>=5) return;
-          const sibs = BOARD.filter(x=>x.group===t.group);
-          const minLvl = Math.min(...sibs.map(x => p.houses[x.i]||0));
-          if(cur>minLvl){ addLog(g,'Najpierw zbuduj na pozostałych ulicach tej dzielnicy','warn'); return; }
+          if(cur < 2){
+            // Pierwsze 2 domki — bez wymogu koloru
+          } else {
+            // 3+ domki — wymagany pełny kolor i parytet
+            const sibs = BOARD.filter(x=>x.group===t.group);
+            const allOwned = sibs.every(x=>p.owns.has(x.i));
+            if(!allOwned){ addLog(g,'Potrzebujesz całego koloru aby budować 3. domek i więcej','warn'); return; }
+            const minLvl = Math.min(...sibs.map(x=>p.houses[x.i]||0));
+            if(cur>minLvl){ addLog(g,'Najpierw zbuduj na pozostałych ulicach tej dzielnicy','warn'); return; }
+          }
           p.money -= cost; p.houses[i] = cur+1;
           addLog(g, `${p.token} ${p.name} buduje ${cur+1===5?'HOTEL':`domek #${cur+1}`} na ${t.name}`, 'good');
         });
@@ -3314,19 +3327,36 @@ function App() {
     } else if(game.phase==='casino'){
       action=()=>api.skipCasino();
     } else if(game.phase==='end'){
-      // Try to build a house if affordable and has monopoly
-      let built=false;
-      for(const tileId of [...cur.owns]){
-        const tile=BOARD[tileId];
-        if(!tile||tile.type!=='street') continue;
-        const grp=_GROUP_TILES[tile.group];
-        if(!grp||!grp.every(i=>cur.owns.has(i))) continue;
-        if(cur.mortgaged.has(tileId)) continue;
-        const h=cur.houses[tileId]||0; if(h>=5) continue;
-        const cost=housePrice(tile.group);
-        if(cur.money>=cost+500){ action=()=>api.buildHouse(tileId); built=true; break; }
+      if(cur.money < 0){
+        // W długu — sprzedaj domek lub zastaw nieruchomość
+        let found=false;
+        for(const tileId of [...cur.owns]){
+          const h=cur.houses[tileId]||0;
+          if(h>0){ action=()=>api.sellHouse(tileId); found=true; break; }
+        }
+        if(!found){
+          const unmortgaged=[...cur.owns].map(i=>BOARD[i])
+            .filter(t=>t&&t.price&&!cur.mortgaged.has(t.i)&&!(cur.houses[t.i]>0))
+            .sort((a,b)=>a.price-b.price);
+          if(unmortgaged.length>0){ action=()=>api.mortgage(unmortgaged[0].i); found=true; }
+        }
+        if(!found) action=()=>api.endTurn();
+      } else {
+        // Buduj domki — sprawdź parytet (buduj na polu z najmniejszą liczbą domków)
+        let built=false;
+        for(const group of Object.keys(_GROUP_TILES)){
+          const grpTiles=_GROUP_TILES[group];
+          if(!grpTiles.every(i=>cur.owns.has(i))) continue;
+          if(grpTiles.some(i=>cur.mortgaged.has(i))) continue;
+          const minH=Math.min(...grpTiles.map(i=>cur.houses[i]||0));
+          if(minH>=5) continue;
+          const tileId=grpTiles.find(i=>(cur.houses[i]||0)===minH);
+          if(tileId===undefined) continue;
+          const cost=housePrice(BOARD[tileId].group);
+          if(cur.money>=cost+500){ action=()=>api.buildHouse(tileId); built=true; break; }
+        }
+        if(!built) action=()=>api.endTurn();
       }
-      if(!built) action=()=>api.endTurn();
     }
 
     if(!action) return;
@@ -3370,7 +3400,7 @@ function App() {
           <EventLog log={game.log}/>
         </div>
       </div>
-      {selectedTile && <PropertyCard tile={selectedTile} state={game} onClose={()=>setSelectedTile(null)} api={api}/>}
+      {selectedTile && <PropertyCard tile={selectedTile} state={game} onClose={()=>setSelectedTile(null)} api={api} myIdx={myIdx}/>}
       {modal && <div/>}
       <EventPopup text={popupText} hiding={popupHiding}/>
       {tweaksOpen && <TweaksPanel game={game} api={api} onClose={()=>setTweaksOpen(false)}/>}
